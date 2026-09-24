@@ -1,5 +1,5 @@
-const CACHE='corey-vibe-auto-release-v5';
-const ASSETS=['./','./index.html','./styles.css','./app.js','./vocal-engine.mjs','./icon.svg','./manifest.webmanifest','./OUTPUT_RIGHTS.md','./THIRD_PARTY_NOTICES.md','./README.md','./examples/into_the_uplifting_lyrics.txt','./examples/into_the_uplifting_metadata.txt'];
+const CACHE='corey-vibe-auto-release-v5-1';
+const ASSETS=['./','./index.html','./styles.css','./app.js','./vocal-engine.mjs','./icon.svg','./manifest.webmanifest','./OUTPUT_RIGHTS.md','./THIRD_PARTY_NOTICES.md','./README.md','./into_the_uplifting_lyrics.txt','./into_the_uplifting_metadata.txt'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{
