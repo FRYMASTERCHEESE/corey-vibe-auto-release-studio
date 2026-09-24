@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#11152a" />
+  <meta name="description" content="Corey Vibe Auto Release Studio v3 — create a release and automatic growth pack in your browser with no paid API." />
+  <title>Corey Vibe Auto Release Studio</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <div class="eyebrow">$0 hosting • browser-based • no paid API</div>
+      <h1>Corey Vibe Auto Release Studio</h1>
+      <p>Type one prompt and automatically build the song master, release assets, commercial-licensing pack, TikTok hooks, captions and growth plan.</p>
+      <div class="hero-badges"><span class="pill">v3</span><span class="pill success">Growth Autopilot ON</span><span class="pill">mobile friendly</span><span class="pill">works offline after first load</span></div>
+    </header>
+
+    <section class="card create-card">
+      <label class="big-label" for="prompt">What should the song feel like?</label>
+      <textarea id="prompt" rows="5" maxlength="500" placeholder="Example: emotional uplifting pop song about starting with nothing, getting one chance, and refusing to give up"></textarea>
+
+      <div class="prompt-chips" aria-label="Prompt ideas">
+        <button class="chip" type="button" data-prompt="emotional uplifting pop song about rebuilding your life and refusing to give up">Emotional pop</button>
+        <button class="chip" type="button" data-prompt="high energy dance song about finally winning after a long struggle">Dance</button>
+        <button class="chip" type="button" data-prompt="cinematic hopeful song about chasing a dream even when nobody believes in you">Cinematic</button>
+      </div>
+
+      <div class="action-row">
+        <button id="createBtn" class="primary">✨ Create Full Release</button>
+        <button id="cancelBtn" class="secondary" disabled>Stop</button>
+      </div>
+
+      <div class="status-wrap" aria-live="polite">
+        <div class="status-line"><span id="statusText">Ready.</span><span id="percentText">0%</span></div>
+        <progress id="progress" max="100" value="0"></progress>
+      </div>
+
+      <details class="advanced">
+        <summary>Advanced settings (optional)</summary>
+        <div class="grid3">
+          <label>Style
+            <select id="style">
+              <option value="auto" selected>Auto from prompt</option>
+              <option value="pop">Pop</option>
+              <option value="hiphop">Hip-Hop</option>
+              <option value="dance">Dance</option>
+              <option value="ambient">Ambient</option>
+              <option value="cinematic">Cinematic</option>
+            </select>
+          </label>
+          <label>Length
+            <select id="length">
+              <option value="60">60+ sec</option>
+              <option value="90" selected>90 sec</option>
+              <option value="120">2 min</option>
+              <option value="180">3 min</option>
+            </select>
+          </label>
+          <label>Energy
+            <select id="energy">
+              <option value="auto" selected>Auto</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </label>
+        </div>
+        <p class="hint">Longer songs use more phone memory while rendering. If a 3-minute song struggles on a phone, generate 60–120 seconds first.</p>
+      </details>
+    </section>
+
+    <section class="card earnings-card">
+      <div class="section-heading">
+        <div><div class="eyebrow">Revenue focus</div><h2>Earnings Autopilot</h2><p>Uses your last-month SoundOn numbers to decide what the release pack should prioritize. It updates automatically when you change the figures.</p></div>
+        <span id="strategyBadge" class="pill success">auto strategy</span>
+      </div>
+
+      <div class="earnings-kpis">
+        <div class="kpi"><small>Last month total</small><strong id="earningsTotal">NZ$496.84</strong></div>
+        <div class="kpi"><small>Commercial licensing</small><strong id="commercialShare">81.7%</strong></div>
+        <div class="kpi"><small>TikTok</small><strong id="tiktokShare">18.3%</strong></div>
+      </div>
+
+      <div class="grid3 earnings-inputs">
+        <label>Commercial Music Licensing (NZD)<input id="commercialEarnings" type="number" min="0" step="0.001" value="405.910" inputmode="decimal" /></label>
+        <label>TikTok (NZD)<input id="tiktokEarnings" type="number" min="0" step="0.001" value="90.872" inputmode="decimal" /></label>
+        <label>Other (NZD)<input id="otherEarnings" type="number" min="0" step="0.001" value="0.061" inputmode="decimal" /></label>
+      </div>
+
+      <div class="strategy-bars" aria-label="Earnings mix">
+        <div><span>Commercial licensing</span><div class="bar"><i id="commercialBar"></i></div></div>
+        <div><span>TikTok</span><div class="bar"><i id="tiktokBar"></i></div></div>
+        <div><span>Other</span><div class="bar"><i id="otherBar"></i></div></div>
+      </div>
+
+      <div id="earningsInsight" class="autopilot-insight"></div>
+
+      <label class="toggle-row"><input id="growthAutopilot" type="checkbox" checked /> <span><strong>Automatic growth pack</strong><small>Every new release automatically gets 15s + 30s hook WAVs, a commercial-licensing cue sheet, TikTok captions, short-video ideas, a Spotify pitch and a release schedule.</small></span></label>
+
+      <details class="advanced earnings-import">
+        <summary>Import a SoundOn CSV/TXT export (optional)</summary>
+        <p class="hint">If your SoundOn export is CSV or TXT, choose it here. The site reads it only in your browser and looks for Commercial Music Licensing and TikTok rows. Nothing is uploaded anywhere.</p>
+        <input id="earningsFile" type="file" accept=".csv,.txt,text/csv,text/plain" />
+        <div id="earningsImportStatus" class="hint"></div>
+      </details>
+    </section>
+
+    <section class="card profile-card">
+      <div class="section-heading">
+        <div><h2>Release profile</h2><p>Saved on this device so you normally only type the song prompt.</p></div>
+        <span class="pill">one-time setup</span>
+      </div>
+      <div class="grid2">
+        <label>Artist name<input id="artistName" value="Corey Vibe" autocomplete="off" /></label>
+        <label>Songwriter / composer<input id="songwriter" value="Corey Vibe" autocomplete="off" /></label>
+        <label>Producer<input id="producer" value="Corey Vibe" autocomplete="off" /></label>
+        <label>Label / imprint<input id="labelName" value="Independent" autocomplete="off" /></label>
+      </div>
+      <p class="hint">Use the contributor names you normally submit to your distributor. The site stores these settings only in this browser.</p>
+    </section>
+
+    <section id="resultCard" class="card result-card hidden">
+      <div class="section-heading">
+        <div><div class="eyebrow">Release ready</div><h2 id="trackTitle">Untitled</h2><p id="trackSummary"></p></div>
+        <span id="readyBadge" class="pill success">checks pending</span>
+      </div>
+
+      <div class="edit-title-row">
+        <label>Release title
+          <input id="titleInput" maxlength="120" />
+        </label>
+        <button id="applyTitleBtn" class="secondary" type="button">Apply title</button>
+      </div>
+
+      <div class="result-grid">
+        <div>
+          <h3>Master</h3>
+          <audio id="player" controls preload="metadata"></audio>
+          <div class="button-grid">
+            <button id="wavBtn" class="secondary">Download WAV</button>
+            <button id="coverBtn" class="secondary">Download Cover</button>
+            <button id="lyricsBtn" class="secondary">Download Lyrics</button>
+            <button id="metaBtn" class="secondary">Download Metadata</button>
+          </div>
+        </div>
+        <div>
+          <h3>3000 × 3000 cover</h3>
+          <img id="coverPreview" alt="Generated release cover" />
+        </div>
+      </div>
+
+      <div class="release-box">
+        <h3>Quick variations</h3>
+        <div class="button-grid variations">
+          <button id="newTitleBtn" class="secondary" type="button">New title</button>
+          <button id="newLyricsBtn" class="secondary" type="button">New lyrics</button>
+          <button id="newCoverBtn" class="secondary" type="button">New cover</button>
+          <button id="newAudioBtn" class="secondary" type="button">New audio variation</button>
+        </div>
+        <p class="hint">These buttons let you change one part without starting the whole release from scratch.</p>
+      </div>
+
+      <div class="release-box growth-pack-box">
+        <div class="section-heading compact">
+          <div><h3>Automatic Growth Pack</h3><p class="hint">Built from the same master so you do not have to make the promo assets yourself.</p></div>
+          <span id="growthPackBadge" class="pill success">ready</span>
+        </div>
+        <div id="growthStrategySummary" class="autopilot-insight"></div>
+        <div class="button-grid growth-downloads">
+          <button id="hook15Btn" class="secondary" type="button">Download 15s Hook WAV</button>
+          <button id="hook30Btn" class="secondary" type="button">Download 30s Hook WAV</button>
+          <button id="growthTextBtn" class="secondary" type="button">Download Growth Plan</button>
+          <button id="licensingBtn" class="secondary" type="button">Download Licensing Sheet</button>
+          <button id="verticalPromoBtn" class="secondary" type="button">Download 9:16 Promo PNG</button>
+        </div>
+        <details class="advanced">
+          <summary>Preview automatic captions & plan</summary>
+          <pre id="growthPreview" class="growth-preview"></pre>
+        </details>
+      </div>
+
+      <div class="release-box">
+        <h3>Release readiness checks</h3>
+        <div id="checks" class="checks"></div>
+      </div>
+
+      <div class="release-box">
+        <h3>Prepared release details</h3>
+        <dl id="releaseDetails" class="release-details"></dl>
+      </div>
+
+      <div class="release-box lyrics-box">
+        <div class="section-heading compact"><h3>Lyrics / writing starter</h3><button id="copyLyricsBtn" class="secondary small" type="button">Copy lyrics</button></div>
+        <pre id="lyricsText"></pre>
+      </div>
+
+      <button id="packageBtn" class="primary huge">⬇ Download Full Release + Growth ZIP</button>
+      <div class="soundon-actions">
+        <a class="button-link secondary" href="https://www.soundon.global/" target="_blank" rel="noopener noreferrer">Open SoundOn</a>
+      </div>
+      <p class="hint centered">The ZIP prepares the release and promotion assets automatically. Distributor uploads, platform submissions and posting still require your own logged-in accounts and final approval.</p>
+    </section>
+
+    <section class="card history-card">
+      <div class="section-heading">
+        <div><h2>Recent projects</h2><p>Your last prompts and release details are saved locally on this device.</p></div>
+        <button id="clearHistoryBtn" class="secondary small" type="button">Clear history</button>
+      </div>
+      <div id="historyList" class="history-list"><p class="hint">No projects yet.</p></div>
+    </section>
+
+    <section class="card diagnostics-card">
+      <div class="section-heading">
+        <div><h2>Browser check</h2><p>Quickly confirm the features this free browser studio needs.</p></div>
+        <button id="diagnosticsBtn" class="secondary" type="button">Run check</button>
+      </div>
+      <div id="diagnosticsList" class="checks diagnostics-list"></div>
+    </section>
+
+    <section class="card about-card">
+      <h2>Commercial-use setup</h2>
+      <p>This version creates audio locally with mathematical synthesis and does not use downloaded beats, audio samples, or a paid music-generation API. The project takes <strong>0% of your royalties</strong> and claims no ownership share in tracks you create with it.</p>
+      <p>The generated WAV contains ordinary PCM audio only. This version does not use an external generative-music model.</p>
+      <p class="hint">No software can guarantee that a newly generated melody will never coincidentally resemble existing music, and copyright/distributor eligibility depends on applicable law and platform rules. See <a href="OUTPUT_RIGHTS.md">OUTPUT_RIGHTS.md</a>.</p>
+    </section>
+
+    <noscript><div class="card error">JavaScript must be enabled because the music is created in your browser.</div></noscript>
+  </main>
+  <canvas id="coverCanvas" width="3000" height="3000" hidden></canvas>
+  <canvas id="promoCanvas" width="1080" height="1920" hidden></canvas>
+  <script src="app.js"></script>
+</body>
+</html>
