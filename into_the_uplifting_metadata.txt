@@ -1,0 +1,21 @@
+SOUNDON RELEASE METADATA
+
+Track title: Into The Uplifting
+Primary artist: Corey Vibe
+Songwriter / composer: Corey Vibe
+Producer: Corey Vibe
+Label / imprint: Independent
+Genre: Pop
+Language: English
+Explicit: No (review lyrics before submission)
+Suggested release date: 2026-10-15
+BPM: 119
+Duration: 91 seconds
+Audio: 44100 Hz / 16-bit / 2 channels / WAV PCM
+Cover: 3000x3000 PNG
+
+PROMPT
+emotional uplifting pop song about rebuilding your life and refusing to give up
+
+NOTES
+Review contributor names, explicit-content selection, genre and release date in SoundOn before final submission.

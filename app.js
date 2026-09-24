@@ -16,15 +16,18 @@ const els = {
   tiktokBar: $('tiktokBar'), otherBar: $('otherBar'), earningsInsight: $('earningsInsight'), growthAutopilot: $('growthAutopilot'), strategyBadge: $('strategyBadge'),
   earningsFile: $('earningsFile'), earningsImportStatus: $('earningsImportStatus'), growthPackBadge: $('growthPackBadge'), growthStrategySummary: $('growthStrategySummary'),
   growthPreview: $('growthPreview'), hook15Btn: $('hook15Btn'), hook30Btn: $('hook30Btn'), growthTextBtn: $('growthTextBtn'), licensingBtn: $('licensingBtn'),
-  verticalPromoBtn: $('verticalPromoBtn'), promoCanvas: $('promoCanvas')
+  verticalPromoBtn: $('verticalPromoBtn'), promoCanvas: $('promoCanvas'),
+  vocalMode: $('vocalMode'), voicePreset: $('voicePreset'), vocalLevel: $('vocalLevel'), autoCleanLyrics: $('autoCleanLyrics'),
+  lyricsImportFile: $('lyricsImportFile'), metadataImportFile: $('metadataImportFile'), loadImportedBtn: $('loadImportedBtn'), loadUpliftingExampleBtn: $('loadUpliftingExampleBtn'), clearImportedBtn: $('clearImportedBtn'), importStatus: $('importStatus'), importBadge: $('importBadge'),
+  instrumentalBtn: $('instrumentalBtn'), vocalStemBtn: $('vocalStemBtn')
 };
 
-let state = { cancelled:false, wavBlob:null, wavUrl:null, coverBlob:null, coverUrl:null, release:null, hook15Blob:null, hook30Blob:null, verticalPromoBlob:null };
+let state = { cancelled:false, wavBlob:null, wavUrl:null, instrumentalBlob:null, vocalStemBlob:null, coverBlob:null, coverUrl:null, release:null, hook15Blob:null, hook30Blob:null, verticalPromoBlob:null, instrumentalAudio:null, importedLyrics:'', importedMetadata:null, importChanges:[] };
 const SELFTEST = new URLSearchParams(location.search).get('selftest')==='1';
 
-const PROFILE_KEY = 'corey-vibe-auto-release-profile-v3';
-const HISTORY_KEY = 'corey-vibe-auto-release-history-v3';
-const EARNINGS_KEY = 'corey-vibe-earnings-autopilot-v3';
+const PROFILE_KEY = 'corey-vibe-auto-release-profile-v4';
+const HISTORY_KEY = 'corey-vibe-auto-release-history-v4';
+const EARNINGS_KEY = 'corey-vibe-earnings-autopilot-v4';
 const STYLE = {
   pop:{bpm:[98,120], scale:'major', wave:'sawtooth', swing:.03, kick:1, hats:1, bass:1},
   hiphop:{bpm:[76,94], scale:'pentMinor', wave:'triangle', swing:.11, kick:1.05, hats:1.08, bass:1.18},
@@ -113,6 +116,84 @@ function parseEarningsExport(text){
   return {commercial,tiktok,other,found};
 }
 
+function parseReleaseMetadata(text){
+  const out={}; let inPrompt=false, prompt=[];
+  for(const raw of String(text||'').split(/\r?\n/)){
+    const line=raw.trim(); if(!line) continue;
+    if(/^PROMPT$/i.test(line)){inPrompt=true;continue;}
+    if(/^NOTES$/i.test(line)){inPrompt=false;continue;}
+    if(inPrompt){prompt.push(line);continue;}
+    const m=line.match(/^([^:]+):\s*(.*)$/); if(m)out[m[1].trim().toLowerCase()]=m[2].trim();
+  }
+  if(prompt.length)out.prompt=prompt.join(' ');
+  return out;
+}
+function lyricThemeLine(prompt,rng){
+  const p=String(prompt||'').toLowerCase();
+  const groups=[];
+  if(/rebuild|start again|starting|life|new beginning/.test(p))groups.push('I pick up every piece and build a brighter road','I turn the broken pieces into something new');
+  if(/refus|give up|keep going|never quit/.test(p))groups.push('I hear the doubt behind me but I keep moving on','I choose another step when stopping would be easy');
+  if(/dream|believe|hope/.test(p))groups.push('I keep the little dream alive beneath the noise','I follow that small light until it fills the room');
+  if(/love|heart/.test(p))groups.push('I carry what I feel into every open door','I let my heart speak louder than the fear');
+  if(!groups.length)groups.push('I turn another hard day into fuel for the climb','I keep a little light for every road ahead','I make a new beginning out of what I have');
+  return pick(groups,rng);
+}
+function cleanLyrics(text,prompt,seed=randomSeed('lyrics')){
+  const rng=mulberry32(seed),changes=[];
+  const lines=String(text||'').split(/\r?\n/).map(line=>{
+    const trimmed=line.trim();
+    if(/^The story is\s+/i.test(trimmed)){const repl=lyricThemeLine(prompt,rng);changes.push(`Replaced prompt-like lyric: “${trimmed}” → “${repl}”`);return repl;}
+    const commaCount=(trimmed.match(/,/g)||[]).length;
+    if(commaCount>=3 && !/[.!?]$/.test(trimmed) && trimmed.split(/\s+/).length<12){const repl=lyricThemeLine(prompt,rng);changes.push(`Replaced keyword-list lyric: “${trimmed}” → “${repl}”`);return repl;}
+    return line;
+  });
+  return {text:lines.join('\n'),changes};
+}
+function applyImportedMetadata(meta){
+  if(!meta)return;
+  const get=k=>meta[k.toLowerCase()]||'';
+  if(get('primary artist'))els.artistName.value=get('primary artist');
+  if(get('songwriter / composer'))els.songwriter.value=get('songwriter / composer');
+  if(get('producer'))els.producer.value=get('producer');
+  if(get('label / imprint'))els.labelName.value=get('label / imprint');
+  if(meta.prompt)els.prompt.value=meta.prompt;
+  const genre=get('genre').toLowerCase();
+  if(genre.includes('hip'))els.style.value='hiphop'; else if(genre.includes('dance'))els.style.value='dance'; else if(genre.includes('ambient'))els.style.value='ambient'; else if(genre.includes('cinematic'))els.style.value='cinematic'; else if(genre.includes('pop'))els.style.value='pop';
+  const dur=parseInt(get('duration'),10); if(dur){els.length.value=dur<=75?'60':dur<=105?'90':dur<=150?'120':'180';}
+  persistProfile();
+}
+function renderImportStatus(){
+  if(!els.importStatus)return;
+  if(!state.importedLyrics&&!state.importedMetadata){els.importBadge.textContent='optional';els.importBadge.classList.remove('success');els.importStatus.textContent='No imported song loaded. A prompt will create a new release from scratch.';return;}
+  const meta=state.importedMetadata||{}, title=meta['track title']||'Imported song';
+  els.importBadge.textContent='loaded';els.importBadge.classList.add('success');
+  els.importStatus.innerHTML=`<strong>${escapeHtml(title)}</strong><br>${state.importedLyrics?'Lyrics loaded. ':''}${state.importedMetadata?'Metadata loaded. ':''}${state.importChanges.length?escapeHtml(state.importChanges.join(' • ')):'Automatic lyric quality check will run before vocal rendering.'}`;
+}
+async function loadImportedFiles(lyricsFile,metadataFile){
+  state.importChanges=[];
+  if(lyricsFile)state.importedLyrics=await lyricsFile.text();
+  if(metadataFile){state.importedMetadata=parseReleaseMetadata(await metadataFile.text());applyImportedMetadata(state.importedMetadata);}
+  renderImportStatus();
+}
+async function loadUpliftingExample(){
+  try{
+    const [lr,mr]=await Promise.all([fetch('./examples/into_the_uplifting_lyrics.txt'),fetch('./examples/into_the_uplifting_metadata.txt')]);
+    if(!lr.ok||!mr.ok)throw new Error('Example files are missing.');
+    state.importedLyrics=await lr.text();state.importedMetadata=parseReleaseMetadata(await mr.text());applyImportedMetadata(state.importedMetadata);renderImportStatus();els.statusText.textContent='Into The Uplifting loaded — press Create Full Release.';
+  }catch(e){els.importStatus.textContent='Could not load example: '+(e?.message||e);}
+}
+function clearImported(){state.importedLyrics='';state.importedMetadata=null;state.importChanges=[];if(els.lyricsImportFile)els.lyricsImportFile.value='';if(els.metadataImportFile)els.metadataImportFile.value='';renderImportStatus();}
+async function waitForVocalEngine(timeoutMs=12000){
+  if(window.CV_VOCALS)return window.CV_VOCALS;
+  return await new Promise((resolve,reject)=>{const timer=setTimeout(()=>{window.removeEventListener('cv-vocals-ready',ready);reject(new Error('Vocal engine did not become ready.'));},timeoutMs);function ready(){clearTimeout(timer);resolve(window.CV_VOCALS);}window.addEventListener('cv-vocals-ready',ready,{once:true});});
+}
+async function addVocals(audio,lyrics){
+  const mode=els.vocalMode?.value||'neural';
+  if(mode==='instrumental')return {masterBlob:audio.blob,masterBuffer:audio.buffer,vocalStemBlob:null,engine:'instrumental',warning:null};
+  const engine=await waitForVocalEngine();
+  return await engine.renderVocalMix({instrumentalBuffer:audio.buffer,lyrics,bpm:audio.bpm,voice:els.voicePreset?.value||'am_michael',level:Number(els.vocalLevel?.value||.86),mode,onStatus:t=>{els.statusText.textContent=t;}});
+}
+
 function randomSeed(label=''){ return xmur3(`${label}|${Date.now()}|${performance.now()}`)(); }
 function replaceTitleInLyrics(text,oldTitle,newTitle){
   const escaped=String(oldTitle||'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
@@ -162,8 +243,6 @@ function makeTitle(prompt,rng){
   return title.replace(/\b(And|The|For|With)\b$/,'').trim();
 }
 function makeLyrics(prompt,title,rng){
-  const words=themeWords(prompt);
-  const theme=words.slice(0,5).join(', ') || 'starting again, hope, and a new road';
   const v1=[
     'I kept a little spark when the room went dark',
     'Another long night and I still chose the road',
@@ -182,13 +261,15 @@ function makeLyrics(prompt,title,rng){
     'I can hear tomorrow getting closer tonight',
     'I keep turning pressure into fuel for the climb'
   ];
+  const pre1=pick(pre,rng),pre2=pick(pre.filter(x=>x!==pre1),rng);
   const hook=[
     `This is ${title}, I am making it mine`,
     'One more chance, one more beat, one more light',
     'I am still moving when the road gets tight',
     'I came this far, I am not leaving tonight'
   ];
-  return `[Title: ${title}]\n\n[Verse 1]\n${pick(v1,rng)}\nThe story is ${theme}\n${pick(v2,rng)}\nI take what I have and I give it some time\n\n[Pre-Chorus]\n${pick(pre,rng)}\n${pick(pre,rng)}\n\n[Chorus]\n${hook[0]}\n${pick(hook.slice(1),rng)}\n${pick(hook.slice(1),rng)}\nOne more heartbeat, one more reason to rise\n\n[Verse 2]\n${pick(v1,rng)}\n${pick(v2,rng)}\nI keep the little wins and I learn from the pain\nIf I get one more shot I will do it again\n\n[Bridge]\nNo shortcut, no borrowed name\nJust another page and a brand new frame\nI keep moving forward, I keep choosing the climb\nBuilding this life one beat at a time\n\n[Final Chorus]\n${hook[0]}\nOne more chance, one more beat, one more light\nI am still moving when the road gets tight\nOne beat at a time, one more try.`;
+  const h1=pick(hook.slice(1),rng),h2=pick(hook.slice(1).filter(x=>x!==h1),rng);
+  return `[Title: ${title}]\n\n[Verse 1]\n${pick(v1,rng)}\n${lyricThemeLine(prompt,rng)}\n${pick(v2,rng)}\nI take what I have and I give it some time\n\n[Pre-Chorus]\n${pre1}\n${pre2}\n\n[Chorus]\n${hook[0]}\n${h1}\n${h2}\nOne more heartbeat, one more reason to rise\n\n[Verse 2]\n${pick(v1,rng)}\n${pick(v2,rng)}\nI keep the little wins and I learn from the pain\nIf I get one more shot I will do it again\n\n[Bridge]\nNo shortcut, no borrowed name\nJust another page and a brand new frame\nI keep moving forward, I keep choosing the climb\nBuilding this life one beat at a time\n\n[Final Chorus]\n${hook[0]}\nOne more chance, one more beat, one more light\nI am still moving when the road gets tight\nOne beat at a time, one more try.`;
 }
 
 function addOsc(ctx,dest,start,dur,freq,type,gain,attack=.008,release=.07,detune=0){
@@ -337,20 +418,22 @@ async function makeVerticalPromo(title,artist,seed){
 }
 
 function defaultReleaseDate(){ const d=new Date(); d.setDate(d.getDate()+21); return d.toISOString().slice(0,10); }
-function buildRelease({prompt,title,style,energy,audio,seed,lyrics}){
+function buildRelease({prompt,title,style,energy,audio,seed,lyrics,vocalEngine='instrumental',vocalWarning=null}){
   const artist=normalizeText(els.artistName.value)||'Corey Vibe';
   const songwriter=normalizeText(els.songwriter.value)||artist;
   const producer=normalizeText(els.producer.value)||artist;
   const label=normalizeText(els.labelName.value)||'Independent';
+  const meta=state.importedMetadata||{};
   return {
     title, artist, songwriter, producer, label, genre:style==='hiphop'?'Hip-Hop/Rap':cap(style), energy,
-    release_date_suggestion:defaultReleaseDate(), explicit:'No (review lyrics before submission)', language:'English',
+    release_date_suggestion:meta['suggested release date']||defaultReleaseDate(), explicit:meta['explicit']||'No (review lyrics before submission)', language:meta['language']||'English',
     prompt, bpm:audio.bpm, duration_seconds:Math.round(audio.duration), sample_rate_hz:audio.sampleRate, bit_depth:audio.bitDepth,
     channels:audio.channels, cover_pixels:'3000x3000', audio_format:'WAV PCM', seed,
-    created_at:new Date().toISOString(), lyrics,
-    generation_method:'Local procedural browser synthesis using Web Audio oscillators, deterministic generated noise, drums and effects. No downloaded audio samples or external music-generation API.',
+    created_at:new Date().toISOString(), lyrics, vocal_engine:vocalEngine, vocal_warning:vocalWarning, vocal_voice:els.voicePreset?.value||null,
+    version:vocalEngine==='instrumental'?'Instrumental':'Sung vocal master + instrumental alternate',
+    generation_method:vocalEngine==='instrumental'?'Local procedural browser synthesis using Web Audio oscillators, deterministic generated noise, drums and effects. No downloaded audio samples.':`Backing track generated locally from Web Audio synthesis. Vocal layer rendered on-device with ${vocalEngine.includes('neural')?'Kokoro neural TTS and rhythmic pitch/timing processing':'the built-in lightweight vocal synthesizer'}; no paid vocal API.`,
     project_royalty_share:'0%', project_ownership_claim:'None',
-    notes:'Review contributor names, explicit-content selection, genre and release date in SoundOn before final submission.'
+    notes:'Review contributor names, lyrics, explicit-content selection, genre and release date in SoundOn before final submission.'
   };
 }
 function genreTag(r){
@@ -367,11 +450,11 @@ function shortVideoIdeasText(r){
 }
 function commercialLicensingText(r){
   const s=getEarningsStrategy();
-  return `COMMERCIAL LICENSING / CUE SHEET — ${r.title}\n\nTitle: ${r.title}\nArtist: ${r.artist}\nComposer / songwriter: ${r.songwriter}\nProducer: ${r.producer}\nLabel / imprint: ${r.label}\nGenre: ${r.genre}\nMood / prompt: ${r.prompt}\nBPM: ${r.bpm}\nDuration: ${r.duration_seconds} seconds\nMaster: 44.1 kHz / 16-bit stereo PCM WAV\nVersion: Instrumental / no sung vocal in this browser build\nExplicit content: No sung lyrics in the audio master\nProject royalty share: ${r.project_royalty_share}\nGeneration method: ${r.generation_method}\n\nREVENUE FOCUS\nEntered period: ${money(s.total)} total\nCommercial licensing: ${money(s.commercial)} (${pct(s.commercialShare)})\nTikTok: ${money(s.tiktok)} (${pct(s.tiktokShare)})\nStrategy: ${s.focus}\n\nRIGHTS NOTE\nThe project itself claims no ownership or royalty share. This sheet is not a legal title opinion or a guarantee that a platform, library, brand or publisher will accept the track. Confirm your contributor information and any third-party rights before licensing.\n`;
+  return `COMMERCIAL LICENSING / CUE SHEET — ${r.title}\n\nTitle: ${r.title}\nArtist: ${r.artist}\nComposer / songwriter: ${r.songwriter}\nProducer: ${r.producer}\nLabel / imprint: ${r.label}\nGenre: ${r.genre}\nMood / prompt: ${r.prompt}\nBPM: ${r.bpm}\nDuration: ${r.duration_seconds} seconds\nMaster: 44.1 kHz / 16-bit stereo PCM WAV\nVersion: ${r.version}\nVocal engine: ${r.vocal_engine}\nInstrumental alternate: ${state.instrumentalBlob?'Included':'Not created'}\nExplicit content: ${r.explicit}\nProject royalty share: ${r.project_royalty_share}\nGeneration method: ${r.generation_method}\n\nREVENUE FOCUS\nEntered period: ${money(s.total)} total\nCommercial licensing: ${money(s.commercial)} (${pct(s.commercialShare)})\nTikTok: ${money(s.tiktok)} (${pct(s.tiktokShare)})\nStrategy: ${s.focus}\n\nRIGHTS NOTE\nThe project itself claims no ownership or royalty share. This sheet is not a legal title opinion or a guarantee that a platform, library, brand or publisher will accept the track. Confirm your contributor information and any third-party rights before licensing.\n`;
 }
 function spotifyPitchText(r){
   const themes=themeWords(r.prompt).slice(0,5).join(', ')||'hope and momentum';
-  return `SPOTIFY PITCH STARTER — ${r.title}\n\n${r.title} is a ${String(r.genre).toLowerCase()} release by ${r.artist} at ${r.bpm} BPM, built around ${themes}. The arrangement is instrumental in this browser version, with an immediate rhythmic opening and a stronger section later in the track for short-form promotion. Planned promotion includes genuine short-form clips using 15-second and 30-second edits, artist social posts and listener engagement.\n\nBefore submitting: edit this pitch so every statement matches the final master and your actual promotion plan. Do not claim playlist support, press, collaborators or audience numbers unless they are true.\n`;
+  return `SPOTIFY PITCH STARTER — ${r.title}\n\n${r.title} is a ${String(r.genre).toLowerCase()} release by ${r.artist} at ${r.bpm} BPM, built around ${themes}. The release includes ${r.vocal_engine==='instrumental'?'an instrumental master':'a sung-vocal master plus an instrumental alternate'}, with an immediate rhythmic opening and a stronger section later in the track for short-form promotion. Planned promotion includes genuine short-form clips using 15-second and 30-second edits, artist social posts and listener engagement.\n\nBefore submitting: edit this pitch so every statement matches the final master and your actual promotion plan. Do not claim playlist support, press, collaborators or audience numbers unless they are true.\n`;
 }
 function releaseScheduleText(r){
   const d=new Date(`${r.release_date_suggestion}T12:00:00`); const fmt=x=>x.toISOString().slice(0,10); const day=n=>{const x=new Date(d);x.setDate(x.getDate()+n);return fmt(x);};
@@ -379,7 +462,7 @@ function releaseScheduleText(r){
 }
 function growthPlanText(r){
   const s=getEarningsStrategy();
-  return `COREY VIBE GROWTH AUTOPILOT — ${r.title}\n\nCURRENT EARNINGS SIGNAL\nTotal entered: ${money(s.total)}\nCommercial Music Licensing: ${money(s.commercial)} (${pct(s.commercialShare)})\nTikTok: ${money(s.tiktok)} (${pct(s.tiktokShare)})\nOther: ${money(s.other)} (${pct(s.otherShare)})\nPriority: ${s.focus}\n\nWHY THE PACK IS BUILT THIS WAY\n${s.code==='commercial'?'Commercial licensing is the dominant source, so this pack emphasizes clean instrumental audio, clear cue-sheet metadata, an immediate hook and short edits that can also feed TikTok discovery.':s.code==='tiktok'?'TikTok is the dominant source, so this pack emphasizes fast hook edits, captions and repeatable short-video concepts.':'The entered mix is more balanced, so this pack covers licensing metadata, short-form hooks and streaming promotion together.'}\n\nFILES TO USE\n• Full WAV: distributor / release master\n• 15s hook WAV: very short teaser\n• 30s hook WAV: longer short-form teaser\n• 9:16 promo PNG: vertical visual for Shorts/Reels/TikTok\n• Commercial licensing cue sheet: licensing metadata starter\n• TikTok captions: five caption choices\n• Short-video ideas: five different concepts\n• Spotify pitch: editable pitch starter\n• Release schedule: automatic dates around the suggested release date\n\nSAFE GROWTH RULE\nGrow with real listeners. Never buy guaranteed streams, use bots/scripts, pay for guaranteed playlist placement, or tell fans to loop songs unnaturally.\n`;
+  return `COREY VIBE GROWTH AUTOPILOT — ${r.title}\n\nCURRENT EARNINGS SIGNAL\nTotal entered: ${money(s.total)}\nCommercial Music Licensing: ${money(s.commercial)} (${pct(s.commercialShare)})\nTikTok: ${money(s.tiktok)} (${pct(s.tiktokShare)})\nOther: ${money(s.other)} (${pct(s.otherShare)})\nPriority: ${s.focus}\n\nWHY THE PACK IS BUILT THIS WAY\n${s.code==='commercial'?'Commercial licensing is the dominant source, so this pack emphasizes both a clean instrumental alternate and a vocal master, clear cue-sheet metadata, an immediate hook and short edits that can also feed TikTok discovery.':s.code==='tiktok'?'TikTok is the dominant source, so this pack emphasizes fast hook edits, captions and repeatable short-video concepts.':'The entered mix is more balanced, so this pack covers licensing metadata, short-form hooks and streaming promotion together.'}\n\nFILES TO USE\n• Full WAV: distributor / release master\n• 15s hook WAV: very short teaser\n• 30s hook WAV: longer short-form teaser\n• 9:16 promo PNG: vertical visual for Shorts/Reels/TikTok\n• Commercial licensing cue sheet: licensing metadata starter\n• TikTok captions: five caption choices\n• Short-video ideas: five different concepts\n• Spotify pitch: editable pitch starter\n• Release schedule: automatic dates around the suggested release date\n\nSAFE GROWTH RULE\nGrow with real listeners. Never buy guaranteed streams, use bots/scripts, pay for guaranteed playlist placement, or tell fans to loop songs unnaturally.\n`;
 }
 function growthStrategyJson(r){
   const s=getEarningsStrategy();
@@ -387,13 +470,13 @@ function growthStrategyJson(r){
 }
 
 function metadataText(r){
-  return `SOUNDON RELEASE METADATA\n\nTrack title: ${r.title}\nPrimary artist: ${r.artist}\nSongwriter / composer: ${r.songwriter}\nProducer: ${r.producer}\nLabel / imprint: ${r.label}\nGenre: ${r.genre}\nLanguage: ${r.language}\nExplicit: ${r.explicit}\nSuggested release date: ${r.release_date_suggestion}\nBPM: ${r.bpm}\nDuration: ${r.duration_seconds} seconds\nAudio: ${r.sample_rate_hz} Hz / ${r.bit_depth}-bit / ${r.channels} channels / ${r.audio_format}\nCover: ${r.cover_pixels} PNG\n\nPROMPT\n${r.prompt}\n\nNOTES\n${r.notes}\n`;
+  return `SOUNDON RELEASE METADATA\n\nTrack title: ${r.title}\nPrimary artist: ${r.artist}\nSongwriter / composer: ${r.songwriter}\nProducer: ${r.producer}\nLabel / imprint: ${r.label}\nGenre: ${r.genre}\nLanguage: ${r.language}\nExplicit: ${r.explicit}\nSuggested release date: ${r.release_date_suggestion}\nBPM: ${r.bpm}\nDuration: ${r.duration_seconds} seconds\nAudio: ${r.sample_rate_hz} Hz / ${r.bit_depth}-bit / ${r.channels} channels / ${r.audio_format}\nVersion: ${r.version}\nVocal engine: ${r.vocal_engine}\nVocal voice preset: ${r.vocal_voice||'None'}\nCover: ${r.cover_pixels} PNG\n\nPROMPT\n${r.prompt}\n\nNOTES\n${r.notes}\n`;
 }
 function rightsText(r){
   return `COREY VIBE AUTO RELEASE STUDIO — COMMERCIAL OUTPUT RIGHTS\n\nTrack: ${r.title}\nArtist: ${r.artist}\nGenerated: ${r.created_at}\nSeed: ${r.seed}\n\n1. PROJECT CLAIM\nThe Corey Vibe Auto Release Studio project claims no ownership share and no royalty share in the audio, cover, lyrics starter, metadata or other output created for the user with this software. Project royalty share: 0%.\n\n2. COMMERCIAL PERMISSION\nTo the maximum extent the software author has any rights that could restrict use of these generated outputs, those rights are irrevocably waived or, where waiver is not legally effective, licensed to the user on a worldwide, perpetual, royalty-free, sublicensable basis for commercial and non-commercial use, including editing, distribution, streaming, synchronization and monetization.\n\n3. USER INPUTS / THIRD-PARTY RIGHTS\nThis grant does not give permission to use someone else's protected name, lyrics, melody, recording, trademark, artwork or other material supplied in a prompt. The user remains responsible for rights in their own inputs.\n\n4. NO GUARANTEE OF STATUTORY COPYRIGHT\nWhether a generated work itself qualifies for copyright protection depends on the law of the relevant country and the user's human creative contribution. Distributor and streaming-platform rules also apply.\n\nGeneration method: ${r.generation_method}\n`;
 }
 function checklistText(r){
-  return `SOUNDON PRE-SUBMISSION CHECKLIST\n\n[OK] WAV master: ${r.sample_rate_hz} Hz, ${r.bit_depth}-bit PCM\n[OK] Track length: ${r.duration_seconds} seconds\n[OK] Cover: 3000 x 3000 PNG\n[OK] Metadata file included\n[OK] Lyrics starter included\n[OK] Commercial output-rights certificate included\n[OK] Production proof JSON included\n\nFINAL ACCOUNT STEPS\n1. Sign in to SoundOn on desktop.\n2. Create a new single/release.\n3. Upload 01_${safeFilename(r.title)}.wav.\n4. Upload 02_${safeFilename(r.title)}_cover.png.\n5. Copy/review the data from 03_release_metadata.txt.\n6. Confirm the correct artist profile, contributor names, explicit status, genre, territories and release date.\n7. Submit for SoundOn review.\n\nImportant: SoundOn's authenticated upload and final submission are not performed by this static GitHub Pages site.\n`;
+  return `SOUNDON PRE-SUBMISSION CHECKLIST\n\n[OK] Main WAV master: ${r.sample_rate_hz} Hz, ${r.bit_depth}-bit PCM\n[OK] Track length: ${r.duration_seconds} seconds\n[OK] Cover: 3000 x 3000 PNG\n[OK] Metadata file included\n[OK] Lyrics included\n[OK] Commercial output-rights certificate included\n[OK] Production proof JSON included\n${state.instrumentalBlob?'[OK] Instrumental alternate included\n':''}${state.vocalStemBlob?'[OK] Vocal stem included\n':''}\nFINAL ACCOUNT STEPS\n1. Sign in to SoundOn on desktop.\n2. Create a new single/release.\n3. Upload 01_${safeFilename(r.title)}_vocal_master.wav${r.vocal_engine==='instrumental'?' (instrumental mode)':''}.\n4. Upload 04_${safeFilename(r.title)}_cover.png.\n5. Copy/review the data from 05_release_metadata.txt.\n6. Confirm the correct artist profile, contributor names, lyrics, explicit status, genre, territories and release date.\n7. Submit for SoundOn review.\n\nImportant: SoundOn's authenticated upload and final submission are not performed by this static GitHub Pages site.\n`;
 }
 
 function validateRelease(r,wavBlob,coverBlob){
@@ -405,7 +488,8 @@ function validateRelease(r,wavBlob,coverBlob){
     {ok:r.cover_pixels==='3000x3000',name:'Cover dimensions',detail:'3000 × 3000 square PNG'},
     {ok:coverBlob.type==='image/png',name:'Cover format',detail:'PNG'},
     {ok:Boolean(r.title&&r.artist&&r.songwriter),name:'Core metadata',detail:'Title, artist and songwriter present'},
-    {ok:true,name:'No imported samples',detail:'Audio is synthesized locally from code'}
+    {ok:true,name:'Backing track source',detail:'Instrumental is synthesized locally from code; no downloaded beat/sample pack'},
+    {ok:r.vocal_engine==='instrumental'||Boolean(state.vocalStemBlob),name:'Vocal render',detail:r.vocal_engine==='instrumental'?'Instrumental mode selected':`Singer engine: ${r.vocal_engine}`}
   ];
 }
 
@@ -421,8 +505,11 @@ function refreshGrowthUI(){
 function refreshReleaseUI(){
   const r=state.release;if(!r)return;
   els.trackTitle.textContent=r.title;els.titleInput.value=r.title;
-  els.trackSummary.textContent=`${r.artist} • ${r.genre} • ${r.bpm} BPM • ${r.duration_seconds} sec`;
+  els.trackSummary.textContent=`${r.artist} • ${r.genre} • ${r.bpm} BPM • ${r.duration_seconds} sec • ${r.vocal_engine==='instrumental'?'instrumental':'vocal'}`;
   els.lyricsText.textContent=r.lyrics;renderDetails(r);
+  if(els.wavBtn)els.wavBtn.textContent=r.vocal_engine==='instrumental'?'Download Master WAV':'Download Vocal Master WAV';
+  if(els.instrumentalBtn)els.instrumentalBtn.disabled=!state.instrumentalBlob;
+  if(els.vocalStemBtn)els.vocalStemBtn.disabled=!state.vocalStemBlob;
   const checks=validateRelease(r,state.wavBlob,state.coverBlob);renderChecks(checks);refreshGrowthUI();
 }
 function loadHistory(){
@@ -448,7 +535,8 @@ function runDiagnostics(){
     {ok:typeof Blob==='function'&&typeof URL.createObjectURL==='function',name:'Downloads',detail:'Blob and object URL support'},
     {ok:(()=>{try{localStorage.setItem('__cv_test','1');localStorage.removeItem('__cv_test');return true}catch(_){return false}})(),name:'Saved settings',detail:'Local storage'},
     {ok:'TextEncoder' in window,name:'Release ZIP',detail:'TextEncoder support'},
-    {ok:true,name:'Paid API requirement',detail:'None for this local version'}
+    {ok:true,name:'Paid API requirement',detail:'None'},
+    {ok:location.protocol!=='file:',name:'Neural singer hosting',detail:location.protocol!=='file:'?'Ready on web hosting':'Use GitHub Pages/HTTP so the singer model can load'}
   ];
   els.diagnosticsList.innerHTML=tests.map(c=>`<div class="check"><span class="icon">${c.ok?'✅':'⚠️'}</span><div><strong>${escapeHtml(c.name)}</strong><small>${escapeHtml(c.detail)}</small></div></div>`).join('');
   return tests.every(t=>t.ok);
@@ -459,7 +547,7 @@ function renderChecks(checks){
   const all=checks.every(c=>c.ok); els.readyBadge.textContent=all?'SoundOn specs passed':'Review checks'; els.readyBadge.classList.toggle('success',all); return all;
 }
 function renderDetails(r){
-  const pairs=[['Title',r.title],['Artist',r.artist],['Songwriter',r.songwriter],['Producer',r.producer],['Genre',r.genre],['Suggested release',r.release_date_suggestion],['Audio',`${r.sample_rate_hz} Hz • ${r.bit_depth}-bit WAV • ${r.duration_seconds}s`],['Cover',r.cover_pixels],['Project royalty share',r.project_royalty_share]];
+  const pairs=[['Title',r.title],['Artist',r.artist],['Songwriter',r.songwriter],['Producer',r.producer],['Genre',r.genre],['Version',r.version],['Singer engine',r.vocal_engine],['Voice preset',r.vocal_voice||'None'],['Suggested release',r.release_date_suggestion],['Audio',`${r.sample_rate_hz} Hz • ${r.bit_depth}-bit WAV • ${r.duration_seconds}s`],['Cover',r.cover_pixels],['Project royalty share',r.project_royalty_share]];
   els.releaseDetails.innerHTML=pairs.map(([k,v])=>`<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(String(v))}</dd>`).join('');
 }
 function escapeHtml(s){ return String(s).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch])); }
@@ -487,81 +575,107 @@ async function makeZip(files){
 }
 
 async function createFullRelease(){
-  const prompt=normalizeText(els.prompt.value); if(!prompt){els.prompt.focus();setProgress(0,'Type a song prompt first.');return;}
+  const importedPrompt=state.importedMetadata?.prompt||'';
+  const prompt=normalizeText(els.prompt.value||importedPrompt); if(!prompt&&!state.importedLyrics){els.prompt.focus();setProgress(0,'Type a song prompt or import lyrics first.');return;}
   persistProfile(); state.cancelled=false; els.createBtn.disabled=true; els.cancelBtn.disabled=false; els.resultCard.classList.add('hidden');
   try{
-    setProgress(3,'Reading your prompt…'); await sleep(50);
+    setProgress(3,'Reading your prompt and imported song files…'); await sleep(50);
     const seed=xmur3(`${prompt}|${els.artistName.value}|${Date.now()}`)(),rng=mulberry32(seed);
     const style=els.style.value==='auto'?inferStyle(prompt):els.style.value;
     let energy=els.energy.value==='auto'?inferEnergy(prompt,style):els.energy.value;
     const revenueStrategy=getEarningsStrategy();
     if(els.growthAutopilot.checked&&els.energy.value==='auto'&&style!=='ambient'&&(revenueStrategy.code==='commercial'||revenueStrategy.code==='tiktok'||revenueStrategy.code==='commercial_tiktok')) energy='high';
-    const seconds=SELFTEST?4:Number(els.length.value),title=makeTitle(prompt,rng),lyrics=makeLyrics(prompt,title,rng);
-    setProgress(9,'Planning title, structure and arrangement…'); await sleep(20);
-    const audio=await renderSong(prompt,style,seconds,energy,seed);
+    const seconds=SELFTEST?4:Number(els.length.value),importedTitle=state.importedMetadata?.['track title'],title=normalizeText(importedTitle)||makeTitle(prompt,rng);
+    let lyrics=state.importedLyrics||makeLyrics(prompt,title,rng);
+    if(els.autoCleanLyrics?.checked){const clean=cleanLyrics(lyrics,prompt,seed^0xBEEF);lyrics=clean.text;state.importChanges=clean.changes;renderImportStatus();}
+    setProgress(8,'Planning title, lyrics and arrangement…'); await sleep(20);
+    const instrumental=await renderSong(prompt||title,style,seconds,energy,seed);
+    setProgress(73,els.vocalMode?.value==='instrumental'?'Keeping instrumental master…':'Creating the singer vocal…');
+    const vocal=await addVocals(instrumental,lyrics);
+    const finalAudio={blob:vocal.masterBlob,buffer:vocal.masterBuffer,bpm:instrumental.bpm,duration:instrumental.duration,sampleRate:instrumental.sampleRate,bitDepth:16,channels:2};
     setProgress(84,'Building automatic 15s and 30s hook edits…');
-    const clips=buildPromoClips(audio);
+    const clips=buildPromoClips(finalAudio);
     setProgress(87,'Creating 3000 × 3000 cover art…');
     const cover=await makeCover(title,normalizeText(els.artistName.value)||'Corey Vibe',seed);
     setProgress(90,'Creating 9:16 promo artwork…');
     const verticalPromo=await makeVerticalPromo(title,normalizeText(els.artistName.value)||'Corey Vibe',seed);
     if(state.cancelled) throw new Error('Generation stopped');
-    setProgress(94,'Preparing release metadata, licensing and growth files…');
-    const release=buildRelease({prompt,title,style,energy,audio,seed,lyrics});
-    const checks=validateRelease(release,audio.blob,cover);
-    cleanupUrls(); state.wavBlob=audio.blob; state.coverBlob=cover; state.release=release; state.hook15Blob=clips.hook15; state.hook30Blob=clips.hook30; state.verticalPromoBlob=verticalPromo;
-    state.wavUrl=URL.createObjectURL(audio.blob); state.coverUrl=URL.createObjectURL(cover);
+    setProgress(94,'Preparing vocal release, instrumental alternate, licensing and growth files…');
+    const release=buildRelease({prompt,title,style,energy,audio:finalAudio,seed,lyrics,vocalEngine:vocal.engine,vocalWarning:vocal.warning});
+    cleanupUrls(); state.wavBlob=finalAudio.blob; state.instrumentalBlob=vocal.engine==='instrumental'?null:instrumental.blob; state.instrumentalAudio=instrumental; state.vocalStemBlob=vocal.vocalStemBlob; state.coverBlob=cover; state.release=release; state.hook15Blob=clips.hook15; state.hook30Blob=clips.hook30; state.verticalPromoBlob=verticalPromo;
+    state.wavUrl=URL.createObjectURL(finalAudio.blob); state.coverUrl=URL.createObjectURL(cover);
     els.player.src=state.wavUrl; els.coverPreview.src=state.coverUrl; refreshReleaseUI(); els.resultCard.classList.remove('hidden');
-    saveHistory(release);setProgress(100,'Complete — release + growth pack ready.');
+    saveHistory(release);setProgress(100,vocal.warning?'Complete — vocal fallback + release pack ready.':'Complete — sung vocal master + instrumental alternate ready.');
+    if(vocal.warning)els.statusText.textContent+=` ${vocal.warning}`;
     els.resultCard.scrollIntoView({behavior:'smooth',block:'start'});
-    window.__APP_TEST_RESULT__={ok:checks.every(c=>c.ok)&&!!state.hook15Blob&&!!state.hook30Blob&&!!state.verticalPromoBlob,title,release,wavSize:audio.blob.size,coverSize:cover.size,hook15Size:state.hook15Blob?.size||0,hook30Size:state.hook30Blob?.size||0,promoSize:state.verticalPromoBlob?.size||0};
+    const checks=validateRelease(release,finalAudio.blob,cover);
+    window.__APP_TEST_RESULT__={ok:checks.every(c=>c.ok)&&!!state.hook15Blob&&!!state.hook30Blob&&!!state.verticalPromoBlob,title,release,wavSize:finalAudio.blob.size,instrumentalSize:instrumental.blob.size,vocalStemSize:state.vocalStemBlob?.size||0,coverSize:cover.size};
     if(SELFTEST) document.documentElement.dataset.selftest=checks.every(c=>c.ok)?'pass':'fail';
   }catch(err){
     console.error(err); setProgress(0,err && err.message==='Generation stopped'?'Stopped.':'Could not finish: '+(err?.message||String(err))); window.__APP_TEST_RESULT__={ok:false,error:err?.message||String(err)};if(SELFTEST)document.documentElement.dataset.selftest='fail';
   }finally{ els.createBtn.disabled=false;els.cancelBtn.disabled=true; }
 }
+
 function cleanupUrls(){ if(state.wavUrl)URL.revokeObjectURL(state.wavUrl);if(state.coverUrl)URL.revokeObjectURL(state.coverUrl);state.wavUrl=null;state.coverUrl=null; }
 
 function getPackageFiles(){
   const r=state.release,base=safeFilename(r.title);
   const files=[
     {name:'00_START_HERE.txt',blob:textBlob(growthPlanText(r))},
-    {name:`01_${base}.wav`,blob:state.wavBlob},
-    {name:`02_${base}_cover.png`,blob:state.coverBlob},
-    {name:'03_release_metadata.txt',blob:textBlob(metadataText(r))},
-    {name:'04_lyrics.txt',blob:textBlob(r.lyrics)},
-    {name:'05_commercial_output_rights.txt',blob:textBlob(rightsText(r))},
-    {name:'06_production_proof.json',blob:textBlob(JSON.stringify(r,null,2),'application/json')},
-    {name:'07_soundon_checklist.txt',blob:textBlob(checklistText(r))}
+    {name:`01_${base}_vocal_master.wav`,blob:state.wavBlob},
   ];
+  if(state.instrumentalBlob)files.push({name:`02_${base}_instrumental.wav`,blob:state.instrumentalBlob});
+  if(state.vocalStemBlob)files.push({name:`03_${base}_vocal_stem.wav`,blob:state.vocalStemBlob});
+  files.push(
+    {name:`04_${base}_cover.png`,blob:state.coverBlob},
+    {name:'05_release_metadata.txt',blob:textBlob(metadataText(r))},
+    {name:'06_lyrics.txt',blob:textBlob(r.lyrics)},
+    {name:'07_commercial_output_rights.txt',blob:textBlob(rightsText(r))},
+    {name:'08_production_proof.json',blob:textBlob(JSON.stringify(r,null,2),'application/json')},
+    {name:'09_soundon_checklist.txt',blob:textBlob(checklistText(r))}
+  );
   if(els.growthAutopilot.checked){
-    if(state.hook15Blob)files.push({name:`08_${base}_15s_hook.wav`,blob:state.hook15Blob});
-    if(state.hook30Blob)files.push({name:`09_${base}_30s_hook.wav`,blob:state.hook30Blob});
-    if(state.verticalPromoBlob)files.push({name:`10_${base}_vertical_1080x1920.png`,blob:state.verticalPromoBlob});
+    if(state.hook15Blob)files.push({name:`10_${base}_15s_hook.wav`,blob:state.hook15Blob});
+    if(state.hook30Blob)files.push({name:`11_${base}_30s_hook.wav`,blob:state.hook30Blob});
+    if(state.verticalPromoBlob)files.push({name:`12_${base}_vertical_1080x1920.png`,blob:state.verticalPromoBlob});
     files.push(
-      {name:'11_commercial_licensing_cue_sheet.txt',blob:textBlob(commercialLicensingText(r))},
-      {name:'12_tiktok_captions.txt',blob:textBlob(tiktokCaptionsText(r))},
-      {name:'13_short_video_ideas.txt',blob:textBlob(shortVideoIdeasText(r))},
-      {name:'14_spotify_pitch_starter.txt',blob:textBlob(spotifyPitchText(r))},
-      {name:'15_release_schedule.txt',blob:textBlob(releaseScheduleText(r))},
-      {name:'16_growth_strategy.json',blob:textBlob(growthStrategyJson(r),'application/json')}
+      {name:'13_commercial_licensing_cue_sheet.txt',blob:textBlob(commercialLicensingText(r))},
+      {name:'14_tiktok_captions.txt',blob:textBlob(tiktokCaptionsText(r))},
+      {name:'15_short_video_ideas.txt',blob:textBlob(shortVideoIdeasText(r))},
+      {name:'16_spotify_pitch_starter.txt',blob:textBlob(spotifyPitchText(r))},
+      {name:'17_release_schedule.txt',blob:textBlob(releaseScheduleText(r))},
+      {name:'18_growth_strategy.json',blob:textBlob(growthStrategyJson(r),'application/json')}
     );
   }
   return files;
 }
 
 
+async function rerenderVocalsOnly(statusLabel='Re-singing updated lyrics…'){
+  if(!state.release||!state.instrumentalAudio)return;
+  setProgress(72,statusLabel);
+  const vocal=await addVocals(state.instrumentalAudio,state.release.lyrics);
+  const inst=state.instrumentalAudio,audio={blob:vocal.masterBlob,buffer:vocal.masterBuffer,bpm:inst.bpm,duration:inst.duration,sampleRate:inst.sampleRate,bitDepth:16,channels:2},clips=buildPromoClips(audio);
+  if(state.wavUrl)URL.revokeObjectURL(state.wavUrl);state.wavBlob=audio.blob;state.instrumentalBlob=vocal.engine==='instrumental'?null:inst.blob;state.vocalStemBlob=vocal.vocalStemBlob;state.hook15Blob=clips.hook15;state.hook30Blob=clips.hook30;state.wavUrl=URL.createObjectURL(audio.blob);els.player.src=state.wavUrl;
+  state.release.vocal_engine=vocal.engine;state.release.vocal_warning=vocal.warning;state.release.vocal_voice=els.voicePreset?.value||null;state.release.version=vocal.engine==='instrumental'?'Instrumental':'Sung vocal master + instrumental alternate';
+  state.release.generation_method=vocal.engine==='instrumental'?'Local procedural browser synthesis using Web Audio oscillators, deterministic generated noise, drums and effects. No downloaded audio samples.':`Backing track generated locally from Web Audio synthesis. Vocal layer rendered on-device with ${vocal.engine.includes('neural')?'Kokoro neural TTS and rhythmic pitch/timing processing':'the built-in lightweight vocal synthesizer'}; no paid vocal API.`;
+  refreshReleaseUI();setProgress(100,vocal.warning?'Updated lyrics/title re-rendered with vocal fallback.':'Updated lyrics/title re-sung and mixed.');
+}
+
 async function applyTitle(){
   if(!state.release)return;const next=normalizeText(els.titleInput.value);if(!next){els.titleInput.focus();return;}
   const old=state.release.title;state.release.title=next;state.release.lyrics=replaceTitleInLyrics(state.release.lyrics,old,next);
-  try{const seed=randomSeed(next),cover=await makeCover(next,state.release.artist,seed),promo=await makeVerticalPromo(next,state.release.artist,seed);if(state.coverUrl)URL.revokeObjectURL(state.coverUrl);state.coverBlob=cover;state.verticalPromoBlob=promo;state.coverUrl=URL.createObjectURL(cover);els.coverPreview.src=state.coverUrl;}catch(e){console.error(e);}
+  try{const seed=randomSeed(next),cover=await makeCover(next,state.release.artist,seed),promo=await makeVerticalPromo(next,state.release.artist,seed);if(state.coverUrl)URL.revokeObjectURL(state.coverUrl);state.coverBlob=cover;state.verticalPromoBlob=promo;state.coverUrl=URL.createObjectURL(cover);els.coverPreview.src=state.coverUrl;await rerenderVocalsOnly('Updating the singer with the new title…');}
+  catch(e){console.error(e);setProgress(0,'Could not apply title: '+(e?.message||e));}
   refreshReleaseUI();saveHistory(state.release);
 }
+
 async function newTitle(){
   if(!state.release)return;const rng=mulberry32(randomSeed(state.release.prompt));const old=state.release.title;const next=makeTitle(state.release.prompt,rng);els.titleInput.value=next;state.release.lyrics=replaceTitleInLyrics(state.release.lyrics,old,next);await applyTitle();
 }
-function newLyrics(){
-  if(!state.release)return;const rng=mulberry32(randomSeed(state.release.prompt));state.release.lyrics=makeLyrics(state.release.prompt,state.release.title,rng);refreshReleaseUI();
+async function newLyrics(){
+  if(!state.release)return;const seed=randomSeed(state.release.prompt),rng=mulberry32(seed);let lyrics=makeLyrics(state.release.prompt,state.release.title,rng);if(els.autoCleanLyrics?.checked)lyrics=cleanLyrics(lyrics,state.release.prompt,seed).text;state.release.lyrics=lyrics;refreshReleaseUI();
+  try{await rerenderVocalsOnly('Writing new lyrics and re-singing them…');saveHistory(state.release);}catch(e){setProgress(0,'Could not re-sing new lyrics: '+(e?.message||e));}
 }
 async function newCover(){
   if(!state.release)return;const oldText=els.newCoverBtn.textContent;els.newCoverBtn.disabled=true;els.newCoverBtn.textContent='Creating…';
@@ -573,12 +687,13 @@ async function newAudioVariation(){
   try{
     state.cancelled=false;const prompt=state.release.prompt,style=els.style.value==='auto'?inferStyle(prompt):els.style.value;let energy=els.energy.value==='auto'?inferEnergy(prompt,style):els.energy.value;
     const revenueStrategy=getEarningsStrategy();if(els.growthAutopilot.checked&&els.energy.value==='auto'&&style!=='ambient'&&(revenueStrategy.code==='commercial'||revenueStrategy.code==='tiktok'||revenueStrategy.code==='commercial_tiktok'))energy='high';
-    const seconds=SELFTEST?4:Number(els.length.value),seed=randomSeed(prompt),audio=await renderSong(prompt,style,seconds,energy,seed);
-    const clips=buildPromoClips(audio);
-    if(state.wavUrl)URL.revokeObjectURL(state.wavUrl);state.wavBlob=audio.blob;state.hook15Blob=clips.hook15;state.hook30Blob=clips.hook30;state.wavUrl=URL.createObjectURL(audio.blob);els.player.src=state.wavUrl;
-    state.release=buildRelease({prompt,title:state.release.title,style,energy,audio,seed,lyrics:state.release.lyrics});refreshReleaseUI();saveHistory(state.release);setProgress(100,'New audio variation + hook edits ready.');
+    const seconds=SELFTEST?4:Number(els.length.value),seed=randomSeed(prompt),instrumental=await renderSong(prompt,style,seconds,energy,seed),vocal=await addVocals(instrumental,state.release.lyrics);
+    const audio={blob:vocal.masterBlob,buffer:vocal.masterBuffer,bpm:instrumental.bpm,duration:instrumental.duration,sampleRate:instrumental.sampleRate,bitDepth:16,channels:2},clips=buildPromoClips(audio);
+    if(state.wavUrl)URL.revokeObjectURL(state.wavUrl);state.wavBlob=audio.blob;state.instrumentalBlob=vocal.engine==='instrumental'?null:instrumental.blob;state.instrumentalAudio=instrumental;state.vocalStemBlob=vocal.vocalStemBlob;state.hook15Blob=clips.hook15;state.hook30Blob=clips.hook30;state.wavUrl=URL.createObjectURL(audio.blob);els.player.src=state.wavUrl;
+    state.release=buildRelease({prompt,title:state.release.title,style,energy,audio,seed,lyrics:state.release.lyrics,vocalEngine:vocal.engine,vocalWarning:vocal.warning});refreshReleaseUI();saveHistory(state.release);setProgress(100,'New full vocal song variation + instrumental alternate ready.');
   }catch(e){setProgress(0,'Could not create variation: '+(e?.message||e));}finally{els.newAudioBtn.disabled=false;els.newAudioBtn.textContent=old;}
 }
+
 async function copyLyrics(){
   if(!state.release)return;try{await navigator.clipboard.writeText(state.release.lyrics);const old=els.copyLyricsBtn.textContent;els.copyLyricsBtn.textContent='Copied';els.copyLyricsBtn.classList.add('copy-ok');setTimeout(()=>{els.copyLyricsBtn.textContent=old;els.copyLyricsBtn.classList.remove('copy-ok');},1300);}catch(_){downloadBlob(textBlob(state.release.lyrics),`${safeFilename(state.release.title)}_lyrics.txt`);}
 }
@@ -610,10 +725,15 @@ els.hook30Btn?.addEventListener('click',()=>state.hook30Blob&&downloadBlob(state
 els.verticalPromoBtn?.addEventListener('click',()=>state.verticalPromoBlob&&downloadBlob(state.verticalPromoBlob,`${safeFilename(state.release.title)}_vertical_1080x1920.png`));
 els.growthTextBtn?.addEventListener('click',()=>state.release&&downloadBlob(textBlob(growthPlanText(state.release)+'\n'+tiktokCaptionsText(state.release)+'\n'+shortVideoIdeasText(state.release)+'\n'+spotifyPitchText(state.release)+'\n'+releaseScheduleText(state.release)),`${safeFilename(state.release.title)}_growth_plan.txt`));
 els.licensingBtn?.addEventListener('click',()=>state.release&&downloadBlob(textBlob(commercialLicensingText(state.release)),`${safeFilename(state.release.title)}_commercial_licensing_sheet.txt`));
+els.loadImportedBtn?.addEventListener('click',()=>loadImportedFiles(els.lyricsImportFile?.files?.[0],els.metadataImportFile?.files?.[0]));
+els.loadUpliftingExampleBtn?.addEventListener('click',loadUpliftingExample);
+els.clearImportedBtn?.addEventListener('click',clearImported);
 els.clearHistoryBtn.addEventListener('click',()=>{try{localStorage.removeItem(HISTORY_KEY);}catch(_){}renderHistory();});
 els.diagnosticsBtn.addEventListener('click',runDiagnostics);
 document.querySelectorAll('[data-prompt]').forEach(b=>b.addEventListener('click',()=>{els.prompt.value=b.dataset.prompt||'';els.prompt.focus();}));
-els.wavBtn.addEventListener('click',()=>state.wavBlob&&downloadBlob(state.wavBlob,`${safeFilename(state.release.title)}.wav`));
+els.wavBtn.addEventListener('click',()=>state.wavBlob&&downloadBlob(state.wavBlob,`${safeFilename(state.release.title)}_vocal_master.wav`));
+els.instrumentalBtn?.addEventListener('click',()=>state.instrumentalBlob&&downloadBlob(state.instrumentalBlob,`${safeFilename(state.release.title)}_instrumental.wav`));
+els.vocalStemBtn?.addEventListener('click',()=>state.vocalStemBlob&&downloadBlob(state.vocalStemBlob,`${safeFilename(state.release.title)}_vocal_stem.wav`));
 els.coverBtn.addEventListener('click',()=>state.coverBlob&&downloadBlob(state.coverBlob,`${safeFilename(state.release.title)}_cover.png`));
 els.lyricsBtn.addEventListener('click',()=>state.release&&downloadBlob(textBlob(state.release.lyrics),`${safeFilename(state.release.title)}_lyrics.txt`));
 els.metaBtn.addEventListener('click',()=>state.release&&downloadBlob(textBlob(metadataText(state.release)),`${safeFilename(state.release.title)}_metadata.txt`));
@@ -623,16 +743,17 @@ els.packageBtn.addEventListener('click',async()=>{
 });
 
 function persistProfile(){
-  try{localStorage.setItem(PROFILE_KEY,JSON.stringify({artistName:els.artistName.value,songwriter:els.songwriter.value,producer:els.producer.value,labelName:els.labelName.value}));}catch(_){ }
+  try{localStorage.setItem(PROFILE_KEY,JSON.stringify({artistName:els.artistName.value,songwriter:els.songwriter.value,producer:els.producer.value,labelName:els.labelName.value,vocalMode:els.vocalMode?.value,voicePreset:els.voicePreset?.value,vocalLevel:els.vocalLevel?.value,autoCleanLyrics:!!els.autoCleanLyrics?.checked}));}catch(_){ }
 }
 function loadProfile(){
-  try{const p=JSON.parse(localStorage.getItem(PROFILE_KEY)||'null');if(!p)return;for(const k of ['artistName','songwriter','producer','labelName'])if(typeof p[k]==='string')els[k].value=p[k];}catch(_){ }
+  try{const p=JSON.parse(localStorage.getItem(PROFILE_KEY)||'null');if(!p)return;for(const k of ['artistName','songwriter','producer','labelName','vocalMode','voicePreset','vocalLevel'])if(typeof p[k]==='string'&&els[k])els[k].value=p[k];if(typeof p.autoCleanLyrics==='boolean'&&els.autoCleanLyrics)els.autoCleanLyrics.checked=p.autoCleanLyrics;}catch(_){ }
 }
-for(const id of ['artistName','songwriter','producer','labelName']) els[id].addEventListener('change',persistProfile);
+for(const id of ['artistName','songwriter','producer','labelName','vocalMode','voicePreset','vocalLevel','autoCleanLyrics']) els[id]?.addEventListener('change',persistProfile);
 loadProfile();
 loadEarnings();
 renderEarningsAutopilot();
 renderHistory();
+renderImportStatus();
 runDiagnostics();
 
 if(!SELFTEST && 'serviceWorker' in navigator && location.protocol!=='file:') navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
@@ -640,6 +761,6 @@ window.addEventListener('beforeunload',cleanupUrls);
 
 // Headless smoke-test hook used during build verification. Normal visitors never trigger it.
 if(SELFTEST){
-  els.prompt.value='uplifting pop song about starting again and keeping a dream alive';els.length.value='60';els.style.value='pop';els.energy.value='medium';
+  els.prompt.value='uplifting pop song about starting again and keeping a dream alive';els.length.value='60';els.style.value='pop';els.energy.value='medium';if(els.vocalMode)els.vocalMode.value='local';
   setTimeout(()=>createFullRelease(),100);
 }

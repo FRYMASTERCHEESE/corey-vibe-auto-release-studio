@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#11152a" />
-  <meta name="description" content="Corey Vibe Auto Release Studio v3 — create a release and automatic growth pack in your browser with no paid API." />
+  <meta name="description" content="Corey Vibe Auto Release Studio v4 — create vocal songs, instrumentals and automatic release packs in your browser with no paid API." />
   <title>Corey Vibe Auto Release Studio</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
@@ -15,8 +15,8 @@
     <header class="hero">
       <div class="eyebrow">$0 hosting • browser-based • no paid API</div>
       <h1>Corey Vibe Auto Release Studio</h1>
-      <p>Type one prompt and automatically build the song master, release assets, commercial-licensing pack, TikTok hooks, captions and growth plan.</p>
-      <div class="hero-badges"><span class="pill">v3</span><span class="pill success">Growth Autopilot ON</span><span class="pill">mobile friendly</span><span class="pill">works offline after first load</span></div>
+      <p>Type one prompt — or import your existing lyrics/metadata — and automatically build a <strong>sung vocal master</strong>, instrumental alternate, release assets, commercial-licensing pack, TikTok hooks, captions and growth plan.</p>
+      <div class="hero-badges"><span class="pill">v4</span><span class="pill success">Vocal Autopilot ON</span><span class="pill success">Growth Autopilot ON</span><span class="pill">GitHub Pages</span></div>
     </header>
 
     <section class="card create-card">
@@ -69,8 +69,53 @@
             </select>
           </label>
         </div>
-        <p class="hint">Longer songs use more phone memory while rendering. If a 3-minute song struggles on a phone, generate 60–120 seconds first.</p>
+        <div class="grid3 vocal-controls">
+          <label>Vocal mode
+            <select id="vocalMode">
+              <option value="neural" selected>Neural singer + instrumental alt</option>
+              <option value="local">Lightweight synthetic singer</option>
+              <option value="instrumental">Instrumental only</option>
+            </select>
+          </label>
+          <label>Singer voice
+            <select id="voicePreset">
+              <option value="am_michael" selected>Warm male</option>
+              <option value="am_fenrir">Energetic male</option>
+              <option value="af_heart">Warm female</option>
+              <option value="af_bella">Bright female</option>
+              <option value="bm_fable">British male</option>
+              <option value="bf_emma">British female</option>
+            </select>
+          </label>
+          <label>Vocal level
+            <select id="vocalLevel">
+              <option value="0.68">Soft</option>
+              <option value="0.86" selected>Balanced</option>
+              <option value="1.05">Front / loud</option>
+            </select>
+          </label>
+        </div>
+        <label class="toggle-row mini-toggle"><input id="autoCleanLyrics" type="checkbox" checked /> <span><strong>Automatic lyric quality check</strong><small>Removes prompt-like keyword dumps and awkward generator lines before the singer renders them.</small></span></label>
+        <p class="hint">Neural singer mode downloads an open-source voice model on first use, then runs it on your device. On slower phones, use the lightweight singer. Longer songs use more memory.</p>
       </details>
+    </section>
+
+
+    <section class="card import-card">
+      <div class="section-heading">
+        <div><div class="eyebrow">Existing songs</div><h2>Import lyrics + SoundOn metadata</h2><p>Use songs you already made as the starting point. The site reads TXT files only in your browser.</p></div>
+        <span id="importBadge" class="pill">optional</span>
+      </div>
+      <div class="grid2">
+        <label>Lyrics TXT<input id="lyricsImportFile" type="file" accept=".txt,text/plain" /></label>
+        <label>Metadata TXT<input id="metadataImportFile" type="file" accept=".txt,text/plain" /></label>
+      </div>
+      <div class="action-row">
+        <button id="loadImportedBtn" class="secondary" type="button">Load selected files</button>
+        <button id="loadUpliftingExampleBtn" class="secondary" type="button">Load “Into The Uplifting” example</button>
+        <button id="clearImportedBtn" class="secondary" type="button">Clear imported song</button>
+      </div>
+      <div id="importStatus" class="autopilot-insight">No imported song loaded. A prompt will create a new release from scratch.</div>
     </section>
 
     <section class="card earnings-card">
@@ -141,7 +186,9 @@
           <h3>Master</h3>
           <audio id="player" controls preload="metadata"></audio>
           <div class="button-grid">
-            <button id="wavBtn" class="secondary">Download WAV</button>
+            <button id="wavBtn" class="secondary">Download Vocal Master WAV</button>
+            <button id="instrumentalBtn" class="secondary">Download Instrumental WAV</button>
+            <button id="vocalStemBtn" class="secondary">Download Vocal Stem WAV</button>
             <button id="coverBtn" class="secondary">Download Cover</button>
             <button id="lyricsBtn" class="secondary">Download Lyrics</button>
             <button id="metaBtn" class="secondary">Download Metadata</button>
@@ -157,9 +204,9 @@
         <h3>Quick variations</h3>
         <div class="button-grid variations">
           <button id="newTitleBtn" class="secondary" type="button">New title</button>
-          <button id="newLyricsBtn" class="secondary" type="button">New lyrics</button>
+          <button id="newLyricsBtn" class="secondary" type="button">New lyrics + re-sing</button>
           <button id="newCoverBtn" class="secondary" type="button">New cover</button>
-          <button id="newAudioBtn" class="secondary" type="button">New audio variation</button>
+          <button id="newAudioBtn" class="secondary" type="button">New full song variation</button>
         </div>
         <p class="hint">These buttons let you change one part without starting the whole release from scratch.</p>
       </div>
@@ -194,7 +241,7 @@
       </div>
 
       <div class="release-box lyrics-box">
-        <div class="section-heading compact"><h3>Lyrics / writing starter</h3><button id="copyLyricsBtn" class="secondary small" type="button">Copy lyrics</button></div>
+        <div class="section-heading compact"><h3>Lyrics used by the singer</h3><button id="copyLyricsBtn" class="secondary small" type="button">Copy lyrics</button></div>
         <pre id="lyricsText"></pre>
       </div>
 
@@ -223,15 +270,16 @@
 
     <section class="card about-card">
       <h2>Commercial-use setup</h2>
-      <p>This version creates audio locally with mathematical synthesis and does not use downloaded beats, audio samples, or a paid music-generation API. The project takes <strong>0% of your royalties</strong> and claims no ownership share in tracks you create with it.</p>
-      <p>The generated WAV contains ordinary PCM audio only. This version does not use an external generative-music model.</p>
-      <p class="hint">No software can guarantee that a newly generated melody will never coincidentally resemble existing music, and copyright/distributor eligibility depends on applicable law and platform rules. See <a href="OUTPUT_RIGHTS.md">OUTPUT_RIGHTS.md</a>.</p>
+      <p>The backing track is created locally from mathematical synthesis with no downloaded beats or prerecorded music samples. Vocal mode can use an open-source on-device neural speech model to create a voice layer, then the site rhythmically tunes and mixes that voice into the song. The project takes <strong>0% of your royalties</strong> and claims no ownership share in tracks you create with it.</p>
+      <p>For licensing flexibility, v4 automatically keeps an <strong>instrumental alternate</strong> as well as the vocal master whenever vocals are enabled.</p>
+      <p class="hint">The neural model/library has its own third-party licence and downloads on first use. This project does not promise that any output is legally copyrightable or accepted by a distributor. See <a href="OUTPUT_RIGHTS.md">OUTPUT_RIGHTS.md</a> and <a href="THIRD_PARTY_NOTICES.md">THIRD_PARTY_NOTICES.md</a>.</p>
     </section>
 
     <noscript><div class="card error">JavaScript must be enabled because the music is created in your browser.</div></noscript>
   </main>
   <canvas id="coverCanvas" width="3000" height="3000" hidden></canvas>
   <canvas id="promoCanvas" width="1080" height="1920" hidden></canvas>
+  <script type="module" src="vocal-engine.mjs"></script>
   <script src="app.js"></script>
 </body>
 </html>
