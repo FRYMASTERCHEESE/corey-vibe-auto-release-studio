@@ -1,12 +1,10 @@
 {
-  "name": "Corey Vibe Auto Release Studio",
-  "short_name": "Vibe Studio",
-  "start_url": "./",
-  "display": "standalone",
-  "background_color": "#090b16",
-  "theme_color": "#11152a",
-  "description": "Create a music master, release package and automatic growth pack in your browser.",
-  "icons": [
-    {"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
-  ]
+  "name":"Corey Vibe Auto Release Studio",
+  "short_name":"Vibe Studio",
+  "start_url":"./",
+  "display":"standalone",
+  "background_color":"#080b16",
+  "theme_color":"#0f1430",
+  "description":"Create sung-style vocal songs, artwork, release metadata and growth packs in your browser.",
+  "icons":[{"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
 }

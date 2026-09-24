@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#11152a" />
-  <meta name="description" content="Corey Vibe Auto Release Studio v4 — create vocal songs, instrumentals and automatic release packs in your browser with no paid API." />
+  <meta name="theme-color" content="#0f1430" />
+  <meta name="description" content="Corey Vibe Auto Release Studio — create sung-style vocal songs, covers, hooks, release metadata and growth assets in your browser." />
   <title>Corey Vibe Auto Release Studio</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
@@ -13,34 +13,37 @@
 <body>
   <main class="shell">
     <header class="hero">
-      <div class="eyebrow">$0 hosting • browser-based • no paid API</div>
+      <div class="eyebrow">$0 GitHub Pages hosting • browser-based • no paid API</div>
       <h1>Corey Vibe Auto Release Studio</h1>
-      <p>Type one prompt — or import your existing lyrics/metadata — and automatically build a <strong>sung vocal master</strong>, instrumental alternate, release assets, commercial-licensing pack, TikTok hooks, captions and growth plan.</p>
-      <div class="hero-badges"><span class="pill">v4</span><span class="pill success">Vocal Autopilot ON</span><span class="pill success">Growth Autopilot ON</span><span class="pill">GitHub Pages</span></div>
+      <p>Type one song idea or import lyrics. The studio builds a <strong>sung-style vocal master</strong>, instrumental alternate, cover, hooks, metadata, licensing pack and release ZIP automatically.</p>
+      <div class="hero-badges">
+        <span class="pill">v5</span>
+        <span class="pill success">Male voice</span>
+        <span class="pill success">Female voice</span>
+        <span class="pill success">Male + female duet</span>
+        <span class="pill">Growth Autopilot</span>
+      </div>
     </header>
 
     <section class="card create-card">
-      <label class="big-label" for="prompt">What should the song feel like?</label>
-      <textarea id="prompt" rows="5" maxlength="500" placeholder="Example: emotional uplifting pop song about starting with nothing, getting one chance, and refusing to give up"></textarea>
-
-      <div class="prompt-chips" aria-label="Prompt ideas">
+      <label class="big-label" for="prompt">What should the song be about?</label>
+      <textarea id="prompt" rows="5" maxlength="600" placeholder="Example: emotional uplifting pop song about rebuilding your life and refusing to give up"></textarea>
+      <div class="prompt-chips">
         <button class="chip" type="button" data-prompt="emotional uplifting pop song about rebuilding your life and refusing to give up">Emotional pop</button>
         <button class="chip" type="button" data-prompt="high energy dance song about finally winning after a long struggle">Dance</button>
-        <button class="chip" type="button" data-prompt="cinematic hopeful song about chasing a dream even when nobody believes in you">Cinematic</button>
+        <button class="chip" type="button" data-prompt="male and female duet about staying together through hard times">Duet</button>
       </div>
-
       <div class="action-row">
         <button id="createBtn" class="primary">✨ Create Full Release</button>
         <button id="cancelBtn" class="secondary" disabled>Stop</button>
       </div>
-
       <div class="status-wrap" aria-live="polite">
         <div class="status-line"><span id="statusText">Ready.</span><span id="percentText">0%</span></div>
         <progress id="progress" max="100" value="0"></progress>
       </div>
 
-      <details class="advanced">
-        <summary>Advanced settings (optional)</summary>
+      <details class="advanced" open>
+        <summary>Voice + song settings</summary>
         <div class="grid3">
           <label>Style
             <select id="style">
@@ -69,41 +72,62 @@
             </select>
           </label>
         </div>
+
         <div class="grid3 vocal-controls">
-          <label>Vocal mode
+          <label>Vocal engine
             <select id="vocalMode">
-              <option value="neural" selected>Neural singer + instrumental alt</option>
-              <option value="local">Lightweight synthetic singer</option>
+              <option value="neural" selected>Neural sung-style vocals</option>
+              <option value="local">Lightweight synthetic fallback</option>
               <option value="instrumental">Instrumental only</option>
             </select>
           </label>
-          <label>Singer voice
-            <select id="voicePreset">
-              <option value="am_michael" selected>Warm male</option>
-              <option value="am_fenrir">Energetic male</option>
-              <option value="af_heart">Warm female</option>
-              <option value="af_bella">Bright female</option>
-              <option value="bm_fable">British male</option>
-              <option value="bf_emma">British female</option>
+          <label>Singer arrangement
+            <select id="singerArrangement">
+              <option value="auto" selected>Auto from prompt</option>
+              <option value="male">Solo male</option>
+              <option value="female">Solo female</option>
+              <option value="duet">Male + female duet</option>
             </select>
           </label>
           <label>Vocal level
             <select id="vocalLevel">
-              <option value="0.68">Soft</option>
-              <option value="0.86" selected>Balanced</option>
-              <option value="1.05">Front / loud</option>
+              <option value="0.72">Soft</option>
+              <option value="0.90" selected>Balanced</option>
+              <option value="1.08">Front / loud</option>
             </select>
           </label>
         </div>
-        <label class="toggle-row mini-toggle"><input id="autoCleanLyrics" type="checkbox" checked /> <span><strong>Automatic lyric quality check</strong><small>Removes prompt-like keyword dumps and awkward generator lines before the singer renders them.</small></span></label>
-        <p class="hint">Neural singer mode downloads an open-source voice model on first use, then runs it on your device. On slower phones, use the lightweight singer. Longer songs use more memory.</p>
+
+        <div class="grid2 vocal-controls">
+          <label>Male voice
+            <select id="maleVoice">
+              <option value="am_michael" selected>Warm male</option>
+              <option value="am_fenrir">Energetic male</option>
+              <option value="am_puck">Bright male</option>
+              <option value="bm_george">British male</option>
+              <option value="bm_fable">British male 2</option>
+            </select>
+          </label>
+          <label>Female voice
+            <select id="femaleVoice">
+              <option value="af_heart" selected>Warm female</option>
+              <option value="af_bella">Bright female</option>
+              <option value="af_nicole">Studio female</option>
+              <option value="bf_emma">British female</option>
+              <option value="bf_isabella">British female 2</option>
+            </select>
+          </label>
+        </div>
+
+        <label class="toggle-row mini-toggle"><input id="chorusTogether" type="checkbox" checked /> <span><strong>Duet choruses together</strong><small>When duet is selected, verses alternate between singers and choruses use both voices together.</small></span></label>
+        <label class="toggle-row mini-toggle"><input id="autoCleanLyrics" type="checkbox" checked /> <span><strong>Automatic lyric quality check</strong><small>Fixes prompt-like keyword lines before vocals are rendered.</small></span></label>
+        <p class="hint">The neural singer downloads an open-source voice model on first use and runs on your device. The first song can take longer. If the model cannot load, the site automatically falls back instead of losing the whole release.</p>
       </details>
     </section>
 
-
     <section class="card import-card">
       <div class="section-heading">
-        <div><div class="eyebrow">Existing songs</div><h2>Import lyrics + SoundOn metadata</h2><p>Use songs you already made as the starting point. The site reads TXT files only in your browser.</p></div>
+        <div><div class="eyebrow">Existing songs</div><h2>Import lyrics + SoundOn metadata</h2><p>Use a song you already wrote as the starting point.</p></div>
         <span id="importBadge" class="pill">optional</span>
       </div>
       <div class="grid2">
@@ -120,35 +144,28 @@
 
     <section class="card earnings-card">
       <div class="section-heading">
-        <div><div class="eyebrow">Revenue focus</div><h2>Earnings Autopilot</h2><p>Uses your last-month SoundOn numbers to decide what the release pack should prioritize. It updates automatically when you change the figures.</p></div>
+        <div><div class="eyebrow">Revenue focus</div><h2>Earnings Autopilot</h2><p>Starts with your last-month mix and automatically prioritizes the release pack around the strongest earning sources.</p></div>
         <span id="strategyBadge" class="pill success">auto strategy</span>
       </div>
-
       <div class="earnings-kpis">
         <div class="kpi"><small>Last month total</small><strong id="earningsTotal">NZ$496.84</strong></div>
         <div class="kpi"><small>Commercial licensing</small><strong id="commercialShare">81.7%</strong></div>
         <div class="kpi"><small>TikTok</small><strong id="tiktokShare">18.3%</strong></div>
       </div>
-
       <div class="grid3 earnings-inputs">
         <label>Commercial Music Licensing (NZD)<input id="commercialEarnings" type="number" min="0" step="0.001" value="405.910" inputmode="decimal" /></label>
         <label>TikTok (NZD)<input id="tiktokEarnings" type="number" min="0" step="0.001" value="90.872" inputmode="decimal" /></label>
         <label>Other (NZD)<input id="otherEarnings" type="number" min="0" step="0.001" value="0.061" inputmode="decimal" /></label>
       </div>
-
-      <div class="strategy-bars" aria-label="Earnings mix">
+      <div class="strategy-bars">
         <div><span>Commercial licensing</span><div class="bar"><i id="commercialBar"></i></div></div>
         <div><span>TikTok</span><div class="bar"><i id="tiktokBar"></i></div></div>
         <div><span>Other</span><div class="bar"><i id="otherBar"></i></div></div>
       </div>
-
       <div id="earningsInsight" class="autopilot-insight"></div>
-
-      <label class="toggle-row"><input id="growthAutopilot" type="checkbox" checked /> <span><strong>Automatic growth pack</strong><small>Every new release automatically gets 15s + 30s hook WAVs, a commercial-licensing cue sheet, TikTok captions, short-video ideas, a Spotify pitch and a release schedule.</small></span></label>
-
+      <label class="toggle-row"><input id="growthAutopilot" type="checkbox" checked /> <span><strong>Automatic growth pack</strong><small>Adds 15s + 30s hook WAVs, licensing cue sheet, TikTok captions, short-video ideas, Spotify pitch starter and release schedule to every ZIP.</small></span></label>
       <details class="advanced earnings-import">
-        <summary>Import a SoundOn CSV/TXT export (optional)</summary>
-        <p class="hint">If your SoundOn export is CSV or TXT, choose it here. The site reads it only in your browser and looks for Commercial Music Licensing and TikTok rows. Nothing is uploaded anywhere.</p>
+        <summary>Import a SoundOn CSV/TXT export</summary>
         <input id="earningsFile" type="file" accept=".csv,.txt,text/csv,text/plain" />
         <div id="earningsImportStatus" class="hint"></div>
       </details>
@@ -156,7 +173,7 @@
 
     <section class="card profile-card">
       <div class="section-heading">
-        <div><h2>Release profile</h2><p>Saved on this device so you normally only type the song prompt.</p></div>
+        <div><h2>Release profile</h2><p>Saved on this device so you normally only type the song idea.</p></div>
         <span class="pill">one-time setup</span>
       </div>
       <div class="grid2">
@@ -165,7 +182,6 @@
         <label>Producer<input id="producer" value="Corey Vibe" autocomplete="off" /></label>
         <label>Label / imprint<input id="labelName" value="Independent" autocomplete="off" /></label>
       </div>
-      <p class="hint">Use the contributor names you normally submit to your distributor. The site stores these settings only in this browser.</p>
     </section>
 
     <section id="resultCard" class="card result-card hidden">
@@ -175,20 +191,20 @@
       </div>
 
       <div class="edit-title-row">
-        <label>Release title
-          <input id="titleInput" maxlength="120" />
-        </label>
+        <label>Release title<input id="titleInput" maxlength="120" /></label>
         <button id="applyTitleBtn" class="secondary" type="button">Apply title</button>
       </div>
 
       <div class="result-grid">
         <div>
-          <h3>Master</h3>
+          <h3>Vocal master</h3>
           <audio id="player" controls preload="metadata"></audio>
           <div class="button-grid">
             <button id="wavBtn" class="secondary">Download Vocal Master WAV</button>
             <button id="instrumentalBtn" class="secondary">Download Instrumental WAV</button>
-            <button id="vocalStemBtn" class="secondary">Download Vocal Stem WAV</button>
+            <button id="vocalStemBtn" class="secondary">Download Combined Vocal Stem</button>
+            <button id="maleStemBtn" class="secondary">Download Male Stem</button>
+            <button id="femaleStemBtn" class="secondary">Download Female Stem</button>
             <button id="coverBtn" class="secondary">Download Cover</button>
             <button id="lyricsBtn" class="secondary">Download Lyrics</button>
             <button id="metaBtn" class="secondary">Download Metadata</button>
@@ -200,6 +216,25 @@
         </div>
       </div>
 
+      <div class="release-box growth-pack-box">
+        <div class="section-heading compact">
+          <div><h3>Automatic Growth Pack</h3><p class="hint" id="growthStrategySummary"></p></div>
+          <span id="growthPackBadge" class="pill success">ready</span>
+        </div>
+        <div class="button-grid growth-downloads">
+          <button id="hook15Btn" class="secondary">Download 15s Hook WAV</button>
+          <button id="hook30Btn" class="secondary">Download 30s Hook WAV</button>
+          <button id="verticalPromoBtn" class="secondary">Download 9:16 Promo PNG</button>
+          <button id="licensingBtn" class="secondary">Download Licensing Cue Sheet</button>
+          <button id="growthTextBtn" class="secondary">Download Captions + Plan</button>
+        </div>
+        <details class="advanced"><summary>Preview captions & plan</summary><pre id="growthPreview" class="growth-preview"></pre></details>
+      </div>
+
+      <div class="release-box"><h3>Release readiness checks</h3><div id="checks" class="checks"></div></div>
+      <div class="release-box"><h3>Prepared release details</h3><dl id="releaseDetails" class="release-details"></dl></div>
+      <div class="release-box lyrics-box"><div class="section-heading compact"><h3>Lyrics used by the singer</h3><button id="copyLyricsBtn" class="secondary small" type="button">Copy lyrics</button></div><pre id="lyricsText"></pre></div>
+
       <div class="release-box">
         <h3>Quick variations</h3>
         <div class="button-grid variations">
@@ -208,75 +243,32 @@
           <button id="newCoverBtn" class="secondary" type="button">New cover</button>
           <button id="newAudioBtn" class="secondary" type="button">New full song variation</button>
         </div>
-        <p class="hint">These buttons let you change one part without starting the whole release from scratch.</p>
-      </div>
-
-      <div class="release-box growth-pack-box">
-        <div class="section-heading compact">
-          <div><h3>Automatic Growth Pack</h3><p class="hint">Built from the same master so you do not have to make the promo assets yourself.</p></div>
-          <span id="growthPackBadge" class="pill success">ready</span>
-        </div>
-        <div id="growthStrategySummary" class="autopilot-insight"></div>
-        <div class="button-grid growth-downloads">
-          <button id="hook15Btn" class="secondary" type="button">Download 15s Hook WAV</button>
-          <button id="hook30Btn" class="secondary" type="button">Download 30s Hook WAV</button>
-          <button id="growthTextBtn" class="secondary" type="button">Download Growth Plan</button>
-          <button id="licensingBtn" class="secondary" type="button">Download Licensing Sheet</button>
-          <button id="verticalPromoBtn" class="secondary" type="button">Download 9:16 Promo PNG</button>
-        </div>
-        <details class="advanced">
-          <summary>Preview automatic captions & plan</summary>
-          <pre id="growthPreview" class="growth-preview"></pre>
-        </details>
-      </div>
-
-      <div class="release-box">
-        <h3>Release readiness checks</h3>
-        <div id="checks" class="checks"></div>
-      </div>
-
-      <div class="release-box">
-        <h3>Prepared release details</h3>
-        <dl id="releaseDetails" class="release-details"></dl>
-      </div>
-
-      <div class="release-box lyrics-box">
-        <div class="section-heading compact"><h3>Lyrics used by the singer</h3><button id="copyLyricsBtn" class="secondary small" type="button">Copy lyrics</button></div>
-        <pre id="lyricsText"></pre>
       </div>
 
       <button id="packageBtn" class="primary huge">⬇ Download Full Release + Growth ZIP</button>
-      <div class="soundon-actions">
-        <a class="button-link secondary" href="https://www.soundon.global/" target="_blank" rel="noopener noreferrer">Open SoundOn</a>
-      </div>
-      <p class="hint centered">The ZIP prepares the release and promotion assets automatically. Distributor uploads, platform submissions and posting still require your own logged-in accounts and final approval.</p>
+      <div class="soundon-actions"><a class="button-link secondary" href="https://www.soundon.global/" target="_blank" rel="noopener noreferrer">Open SoundOn</a></div>
+      <p class="hint centered">The site prepares the files. Final distributor submission still requires your own account and approval.</p>
     </section>
 
     <section class="card history-card">
-      <div class="section-heading">
-        <div><h2>Recent projects</h2><p>Your last prompts and release details are saved locally on this device.</p></div>
-        <button id="clearHistoryBtn" class="secondary small" type="button">Clear history</button>
-      </div>
+      <div class="section-heading"><div><h2>Recent projects</h2><p>Saved locally on this device.</p></div><button id="clearHistoryBtn" class="secondary small" type="button">Clear history</button></div>
       <div id="historyList" class="history-list"><p class="hint">No projects yet.</p></div>
     </section>
 
     <section class="card diagnostics-card">
-      <div class="section-heading">
-        <div><h2>Browser check</h2><p>Quickly confirm the features this free browser studio needs.</p></div>
-        <button id="diagnosticsBtn" class="secondary" type="button">Run check</button>
-      </div>
+      <div class="section-heading"><div><h2>Browser check</h2><p>Checks the features needed for local music, artwork and ZIP generation.</p></div><button id="diagnosticsBtn" class="secondary" type="button">Run check</button></div>
       <div id="diagnosticsList" class="checks diagnostics-list"></div>
     </section>
 
     <section class="card about-card">
       <h2>Commercial-use setup</h2>
-      <p>The backing track is created locally from mathematical synthesis with no downloaded beats or prerecorded music samples. Vocal mode can use an open-source on-device neural speech model to create a voice layer, then the site rhythmically tunes and mixes that voice into the song. The project takes <strong>0% of your royalties</strong> and claims no ownership share in tracks you create with it.</p>
-      <p>For licensing flexibility, v4 automatically keeps an <strong>instrumental alternate</strong> as well as the vocal master whenever vocals are enabled.</p>
-      <p class="hint">The neural model/library has its own third-party licence and downloads on first use. This project does not promise that any output is legally copyrightable or accepted by a distributor. See <a href="OUTPUT_RIGHTS.md">OUTPUT_RIGHTS.md</a> and <a href="THIRD_PARTY_NOTICES.md">THIRD_PARTY_NOTICES.md</a>.</p>
+      <p>The website itself takes <strong>0% of your royalties</strong> and claims no ownership share in tracks you create with it. The backing music is procedurally synthesized without downloaded beat samples. Neural vocals use a third-party open-source voice model.</p>
+      <p class="hint">No software can guarantee copyrightability, distributor acceptance or that a generated output never resembles existing material. Review the finished song, credits and platform rules before release. If a platform requires an AI/automated-content disclosure, follow that rule rather than falsifying metadata. See <a href="OUTPUT_RIGHTS.md">OUTPUT_RIGHTS.md</a> and <a href="THIRD_PARTY_NOTICES.md">THIRD_PARTY_NOTICES.md</a>.</p>
     </section>
 
     <noscript><div class="card error">JavaScript must be enabled because the music is created in your browser.</div></noscript>
   </main>
+
   <canvas id="coverCanvas" width="3000" height="3000" hidden></canvas>
   <canvas id="promoCanvas" width="1080" height="1920" hidden></canvas>
   <script type="module" src="vocal-engine.mjs"></script>
