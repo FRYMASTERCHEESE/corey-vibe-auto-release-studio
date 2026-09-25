@@ -1,5 +1,5 @@
-const CACHE='corey-vibe-auto-release-v7-suno-first';
-const CORE=['./','./index.html','./styles.css','./icon.svg','./manifest.webmanifest','./app.js?v=7'];
+const CACHE='corey-vibe-auto-release-v8-eleven-first';
+const CORE=['./','./index.html','./styles.css','./icon.svg','./manifest.webmanifest','./app.js?v=8'];
 self.addEventListener('install',e=>e.waitUntil(
   caches.open(CACHE).then(c=>Promise.all(CORE.map(x=>c.add(x).catch(()=>null)))).then(()=>self.skipWaiting())
 ));

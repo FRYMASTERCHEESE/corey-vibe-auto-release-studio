@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#0f1430" />
-  <meta name="description" content="Corey Vibe Auto Release Studio v7 — faster local vocal rendering, automatic release packs, local vocals, and optional studio-quality full-song generation through ACE-Step." />
+  <meta name="description" content="Corey Vibe Auto Release Studio v8 — faster local vocal rendering, automatic release packs, local vocals, and optional studio-quality full-song generation through ACE-Step." />
   <title>Corey Vibe Auto Release Studio</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
@@ -15,61 +15,68 @@
 <body>
   <main class="shell">
     <header class="hero">
-      <div class="eyebrow">Suno-first workflow • fast website • automatic release packaging</div>
+      <div class="eyebrow">Eleven Music–first workflow • fast website • automatic release packaging</div>
       <h1>Corey Vibe Auto Release Studio</h1>
-      <p>Use <strong>Suno for the actual singing and full-song generation</strong>. This site prepares your title, lyrics and style, opens Suno, then turns the finished Suno audio into your WAV master, cover, hooks, SoundOn metadata and complete release ZIP.</p>
+      <p>Use <strong>Eleven Music for the actual singing and full-song generation</strong>. This site prepares your title, lyrics and style, opens Eleven Music, then turns the finished Eleven Music audio into your WAV master, cover, hooks, SoundOn metadata and complete release ZIP.</p>
       <div class="hero-badges">
-        <span class="pill">v7</span>
-        <span class="pill success">Suno First</span>
+        <span class="pill">v8</span>
+        <span class="pill success">Eleven Music First</span>
         <span class="pill success">Male / female / duet prompts</span>
-        <span class="pill success">Import Suno audio → release ZIP</span>
+        <span class="pill success">Import Eleven audio → release ZIP</span>
         <span class="pill">Growth Autopilot</span>
       </div>
     </header>
 
-    <section class="card suno-card">
+    <section class="card eleven-card">
       <div class="section-heading">
         <div>
           <div class="eyebrow">Recommended</div>
-          <h2>🎤 Create with Suno</h2>
-          <p>This avoids the slow chopped local voice. Prepare the song here, generate it in Suno, then import the finished audio back here for the automatic release pack.</p>
+          <h2>🎤 Create with Eleven Music</h2>
+          <p>This avoids the slow chopped local voice. Prepare the song here, generate it in Eleven Music, then import the finished audio back here for the automatic release pack.</p>
         </div>
-        <span class="pill success">Suno First</span>
+        <span class="pill success">Eleven Music First</span>
       </div>
 
       <div class="action-row">
-        <button id="sunoPrepareBtn" class="primary" type="button">1. Prepare Song + Open Suno</button>
-        <a id="openSunoDirect" class="button-link secondary" href="https://suno.com/create" target="_blank" rel="noopener noreferrer">Open Suno Create</a>
+        <button id="elevenPrepareBtn" class="primary" type="button">1. Prepare Song + Open Eleven Music</button>
+        <a id="openElevenDirect" class="button-link secondary" href="https://elevenlabs.io/app/music" target="_blank" rel="noopener noreferrer">Open Eleven Music</a>
       </div>
 
-      <div id="sunoPrepStatus" class="autopilot-insight">Type your song idea below, then use “Prepare Song + Open Suno”.</div>
+      <div id="elevenPrepStatus" class="autopilot-insight">Type your song idea below, then use “Prepare Song + Open Eleven Music”.</div>
 
-      <details id="sunoPackDetails" class="advanced">
-        <summary>Suno-ready title, style and lyrics</summary>
+      <details id="elevenPackDetails" class="advanced">
+        <summary>Eleven Music–ready title, style and lyrics</summary>
         <div class="grid2">
-          <label>Title<input id="sunoTitleOut" readonly /></label>
-          <label>Style / vocal direction<textarea id="sunoStyleOut" rows="5" readonly></textarea></label>
+          <label>Title<input id="elevenTitleOut" readonly /></label>
+          <label>Style / vocal direction<textarea id="elevenStyleOut" rows="5" readonly></textarea></label>
         </div>
-        <label>Lyrics<textarea id="sunoLyricsOut" rows="14" readonly></textarea></label>
+        <label>Lyrics<textarea id="elevenLyricsOut" rows="14" readonly></textarea></label>
         <div class="action-row">
-          <button id="copySunoTitleBtn" class="secondary" type="button">Copy Title</button>
-          <button id="copySunoStyleBtn" class="secondary" type="button">Copy Style</button>
-          <button id="copySunoLyricsBtn" class="secondary" type="button">Copy Lyrics</button>
-          <button id="copySunoPackBtn" class="secondary" type="button">Copy Everything</button>
+          <button id="copyElevenTitleBtn" class="secondary" type="button">Copy Title</button>
+          <button id="copyElevenStyleBtn" class="secondary" type="button">Copy Style</button>
+          <button id="copyElevenLyricsBtn" class="secondary" type="button">Copy Lyrics</button>
+          <button id="copyElevenPackBtn" class="secondary" type="button">Copy Everything</button>
         </div>
       </details>
 
       <div class="release-box">
-        <h3>2. Import the finished Suno song</h3>
-        <p class="hint">After Suno generates the song, download the audio, come back here, choose the file, and the website will build the release package automatically.</p>
-        <input id="sunoAudioFile" type="file" accept="audio/*,.wav,.mp3,.m4a,.aac,.ogg" />
+        <h3>2. Import the finished Eleven Music song</h3>
+        <p class="hint">After Eleven Music generates the song, download the audio, come back here, choose the file, and the website will build the release package automatically.</p>
+        <label>Eleven Music usage status
+          <select id="elevenUsage">
+            <option value="free" selected>Free plan — personal use only (not SoundOn release-ready)</option>
+            <option value="commercial">Paid/PAYG rights that allow this release — commercial workflow</option>
+          </select>
+        </label>
+        <p class="hint">This selector does not create rights. Choose the commercial option only if your ElevenLabs plan/terms for this generated track actually permit your intended release.</p>
+        <input id="elevenAudioFile" type="file" accept="audio/*,.wav,.mp3,.m4a,.aac,.ogg" />
         <div class="action-row">
-          <button id="importSunoBtn" class="primary" type="button">Import Suno Song + Finish Release</button>
+          <button id="importElevenBtn" class="primary" type="button">Import Eleven Song + Finish Release</button>
         </div>
-        <div id="sunoImportStatus" class="hint">No Suno audio imported yet.</div>
+        <div id="elevenImportStatus" class="hint">No Eleven Music audio imported yet.</div>
       </div>
 
-      <p class="hint">Until Suno enables official API access for your account, the generation step stays inside your own Suno account. The website does not ask for or store your Suno password.</p>
+      <p class="hint">The free workflow keeps generation inside your ElevenLabs account, so no API key is exposed in this public GitHub Pages site. Direct Music API automation can be added later if you have paid/PAYG API access and a private backend.</p>
     </section>
 
     <section class="card create-card">
@@ -123,7 +130,7 @@
         <div class="grid3 vocal-controls">
           <label>Vocal engine
             <select id="vocalMode">
-              <option value="instrumental" selected>Instrumental / no local vocal (recommended with Suno)</option>
+              <option value="instrumental" selected>Instrumental / no local vocal (recommended with Eleven Music)</option>
               <option value="studio">Studio full-song singer (ACE-Step)</option>
               <option value="neural">Fast Local neural voice</option>
               <option value="local">Lightweight synthetic fallback</option>
@@ -188,7 +195,7 @@
         </div>
 
         <div class="studio-connector">
-          <div class="section-heading compact"><div><h3>Studio Singer connection</h3><p class="hint">Optional. A static GitHub page cannot run a large Suno-style music model by itself. Connect an HTTPS ACE-Step server when you want the higher-quality full-song engine.</p></div><span id="studioBadge" class="pill">not connected</span></div>
+          <div class="section-heading compact"><div><h3>Studio Singer connection</h3><p class="hint">Optional. A static GitHub page cannot run a large cloud music model by itself. Connect an HTTPS ACE-Step server when you want the higher-quality full-song engine.</p></div><span id="studioBadge" class="pill">not connected</span></div>
           <div class="grid2">
             <label>Studio API URL<input id="studioApiUrl" type="url" inputmode="url" placeholder="https://your-studio-server.example" autocomplete="off" /></label>
             <label>Access token (optional)<input id="studioApiToken" type="password" placeholder="Private token" autocomplete="off" /></label>
@@ -350,6 +357,6 @@
 
   <canvas id="coverCanvas" width="3000" height="3000" hidden></canvas>
   <canvas id="promoCanvas" width="1080" height="1920" hidden></canvas>
-  <script src="app.js?v=7" defer></script>
+  <script src="app.js?v=8" defer></script>
 </body>
 </html>

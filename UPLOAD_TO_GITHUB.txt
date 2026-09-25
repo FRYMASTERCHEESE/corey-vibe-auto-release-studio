@@ -1,11 +1,1 @@
-Corey Vibe v6.3 Ultra Fast patch
-
-Replace these files in the repository root:
-- index.html
-- app.js
-- vocal-engine.mjs
-- service-worker.js
-- README.md
-- PERFORMANCE_NOTES.md
-
-Then close Chrome completely and reopen the GitHub Pages site so the new service-worker cache takes over.
+Upload all files in this folder to the ROOT of FRYMASTERCHEESE/corey-vibe-auto-release-studio and replace older files. Then close/reopen the GitHub Pages site. You should see v8 and “Eleven Music First”.
