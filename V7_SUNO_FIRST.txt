@@ -1,0 +1,1 @@
+v7 makes Suno the recommended generator. Local vocals remain only as a backup. The website prepares Suno-ready title/style/lyrics and imports the downloaded Suno audio to build the release pack.

@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#0f1430" />
-  <meta name="description" content="Corey Vibe Auto Release Studio v6.4 — faster local vocal rendering, automatic release packs, local vocals, and optional studio-quality full-song generation through ACE-Step." />
+  <meta name="description" content="Corey Vibe Auto Release Studio v7 — faster local vocal rendering, automatic release packs, local vocals, and optional studio-quality full-song generation through ACE-Step." />
   <title>Corey Vibe Auto Release Studio</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
@@ -15,17 +15,62 @@
 <body>
   <main class="shell">
     <header class="hero">
-      <div class="eyebrow">$0 GitHub Pages hosting • fast startup • optional studio singer</div>
+      <div class="eyebrow">Suno-first workflow • fast website • automatic release packaging</div>
       <h1>Corey Vibe Auto Release Studio</h1>
-      <p>Type one song idea or import lyrics. The studio automatically builds the release pack. Use <strong>Fast Local</strong> on the phone, or connect the optional <strong>Studio Singer</strong> backend for a much more realistic full-song vocal result.</p>
+      <p>Use <strong>Suno for the actual singing and full-song generation</strong>. This site prepares your title, lyrics and style, opens Suno, then turns the finished Suno audio into your WAV master, cover, hooks, SoundOn metadata and complete release ZIP.</p>
       <div class="hero-badges">
-        <span class="pill">v6.4</span>
-        <span class="pill success">Fast start</span>
-        <span class="pill success">Male / female / duet</span>
-        <span class="pill success">Studio Singer connector</span>
+        <span class="pill">v7</span>
+        <span class="pill success">Suno First</span>
+        <span class="pill success">Male / female / duet prompts</span>
+        <span class="pill success">Import Suno audio → release ZIP</span>
         <span class="pill">Growth Autopilot</span>
       </div>
     </header>
+
+    <section class="card suno-card">
+      <div class="section-heading">
+        <div>
+          <div class="eyebrow">Recommended</div>
+          <h2>🎤 Create with Suno</h2>
+          <p>This avoids the slow chopped local voice. Prepare the song here, generate it in Suno, then import the finished audio back here for the automatic release pack.</p>
+        </div>
+        <span class="pill success">Suno First</span>
+      </div>
+
+      <div class="action-row">
+        <button id="sunoPrepareBtn" class="primary" type="button">1. Prepare Song + Open Suno</button>
+        <a id="openSunoDirect" class="button-link secondary" href="https://suno.com/create" target="_blank" rel="noopener noreferrer">Open Suno Create</a>
+      </div>
+
+      <div id="sunoPrepStatus" class="autopilot-insight">Type your song idea below, then use “Prepare Song + Open Suno”.</div>
+
+      <details id="sunoPackDetails" class="advanced">
+        <summary>Suno-ready title, style and lyrics</summary>
+        <div class="grid2">
+          <label>Title<input id="sunoTitleOut" readonly /></label>
+          <label>Style / vocal direction<textarea id="sunoStyleOut" rows="5" readonly></textarea></label>
+        </div>
+        <label>Lyrics<textarea id="sunoLyricsOut" rows="14" readonly></textarea></label>
+        <div class="action-row">
+          <button id="copySunoTitleBtn" class="secondary" type="button">Copy Title</button>
+          <button id="copySunoStyleBtn" class="secondary" type="button">Copy Style</button>
+          <button id="copySunoLyricsBtn" class="secondary" type="button">Copy Lyrics</button>
+          <button id="copySunoPackBtn" class="secondary" type="button">Copy Everything</button>
+        </div>
+      </details>
+
+      <div class="release-box">
+        <h3>2. Import the finished Suno song</h3>
+        <p class="hint">After Suno generates the song, download the audio, come back here, choose the file, and the website will build the release package automatically.</p>
+        <input id="sunoAudioFile" type="file" accept="audio/*,.wav,.mp3,.m4a,.aac,.ogg" />
+        <div class="action-row">
+          <button id="importSunoBtn" class="primary" type="button">Import Suno Song + Finish Release</button>
+        </div>
+        <div id="sunoImportStatus" class="hint">No Suno audio imported yet.</div>
+      </div>
+
+      <p class="hint">Until Suno enables official API access for your account, the generation step stays inside your own Suno account. The website does not ask for or store your Suno password.</p>
+    </section>
 
     <section class="card create-card">
       <label class="big-label" for="prompt">What should the song be about?</label>
@@ -36,7 +81,7 @@
         <button class="chip" type="button" data-prompt="male and female duet about staying together through hard times">Duet</button>
       </div>
       <div class="action-row">
-        <button id="createBtn" class="primary">✨ Create Full Release</button>
+        <button id="createBtn" class="secondary">Backup: Create Locally</button>
         <button id="cancelBtn" class="secondary" disabled>Stop</button>
       </div>
       <div class="status-wrap" aria-live="polite">
@@ -45,7 +90,7 @@
       </div>
 
       <details class="advanced" open>
-        <summary>Voice + song settings</summary>
+        <summary>Backup local voice + song settings</summary>
         <div class="grid3">
           <label>Style
             <select id="style">
@@ -78,7 +123,7 @@
         <div class="grid3 vocal-controls">
           <label>Vocal engine
             <select id="vocalMode">
-              <option value="auto" selected>Auto — Studio if connected, otherwise Fast Local</option>
+              <option value="instrumental" selected>Instrumental / no local vocal (recommended with Suno)</option>
               <option value="studio">Studio full-song singer (ACE-Step)</option>
               <option value="neural">Fast Local neural voice</option>
               <option value="local">Lightweight synthetic fallback</option>
@@ -105,7 +150,7 @@
         <div class="grid2 vocal-controls">
           <label>Fast Local performance
             <select id="localPerformance">
-              <option value="ultra" selected>Ultra Fast Local — 1 neural pass per singer (v6.4)</option>
+              <option value="ultra" selected>Ultra Fast Local — 1 neural pass per singer (v7)</option>
               <option value="mobile">Mobile Safe — smaller blocks / maximum stability</option>
               <option value="turbo">Turbo — desktop / high-memory device</option>
               <option value="auto">Auto — chooses a safe mode for this device</option>
@@ -305,6 +350,6 @@
 
   <canvas id="coverCanvas" width="3000" height="3000" hidden></canvas>
   <canvas id="promoCanvas" width="1080" height="1920" hidden></canvas>
-  <script src="app.js?v=6.4" defer></script>
+  <script src="app.js?v=7" defer></script>
 </body>
 </html>

@@ -2,7 +2,7 @@
 
 const $=id=>document.getElementById(id);
 const els={
-  prompt:$('prompt'),createBtn:$('createBtn'),cancelBtn:$('cancelBtn'),statusText:$('statusText'),percentText:$('percentText'),progress:$('progress'),
+  prompt:$('prompt'),createBtn:$('createBtn'),cancelBtn:$('cancelBtn'),statusText:$('statusText'),percentText:$('percentText'),progress:$('progress'),sunoPrepareBtn:$('sunoPrepareBtn'),sunoPrepStatus:$('sunoPrepStatus'),sunoPackDetails:$('sunoPackDetails'),sunoTitleOut:$('sunoTitleOut'),sunoStyleOut:$('sunoStyleOut'),sunoLyricsOut:$('sunoLyricsOut'),copySunoTitleBtn:$('copySunoTitleBtn'),copySunoStyleBtn:$('copySunoStyleBtn'),copySunoLyricsBtn:$('copySunoLyricsBtn'),copySunoPackBtn:$('copySunoPackBtn'),sunoAudioFile:$('sunoAudioFile'),importSunoBtn:$('importSunoBtn'),sunoImportStatus:$('sunoImportStatus'),
   style:$('style'),length:$('length'),energy:$('energy'),vocalMode:$('vocalMode'),singerArrangement:$('singerArrangement'),maleVoice:$('maleVoice'),femaleVoice:$('femaleVoice'),vocalLevel:$('vocalLevel'),localPerformance:$('localPerformance'),studioModel:$('studioModel'),studioApiUrl:$('studioApiUrl'),studioApiToken:$('studioApiToken'),rememberStudioToken:$('rememberStudioToken'),testStudioBtn:$('testStudioBtn'),studioStatus:$('studioStatus'),studioBadge:$('studioBadge'),chorusTogether:$('chorusTogether'),autoCleanLyrics:$('autoCleanLyrics'),
   lyricsImportFile:$('lyricsImportFile'),metadataImportFile:$('metadataImportFile'),loadImportedBtn:$('loadImportedBtn'),loadUpliftingExampleBtn:$('loadUpliftingExampleBtn'),clearImportedBtn:$('clearImportedBtn'),importStatus:$('importStatus'),importBadge:$('importBadge'),
   commercialEarnings:$('commercialEarnings'),tiktokEarnings:$('tiktokEarnings'),otherEarnings:$('otherEarnings'),earningsTotal:$('earningsTotal'),commercialShare:$('commercialShare'),tiktokShare:$('tiktokShare'),commercialBar:$('commercialBar'),tiktokBar:$('tiktokBar'),otherBar:$('otherBar'),earningsInsight:$('earningsInsight'),growthAutopilot:$('growthAutopilot'),strategyBadge:$('strategyBadge'),earningsFile:$('earningsFile'),earningsImportStatus:$('earningsImportStatus'),
@@ -15,7 +15,7 @@ const els={
 };
 
 const SELFTEST=new URLSearchParams(location.search).get('selftest')==='1';
-const PROFILE_KEY='corey-vibe-auto-release-profile-v6-4';
+const PROFILE_KEY='corey-vibe-auto-release-profile-v7';
 const EARNINGS_KEY='corey-vibe-earnings-autopilot-v6-2';
 const HISTORY_KEY='corey-vibe-auto-release-history-v6-2';
 const STYLE={
@@ -27,7 +27,7 @@ const STYLE={
 };
 const SCALES={major:[0,2,4,5,7,9,11],minor:[0,2,3,5,7,8,10],pentMinor:[0,3,5,7,10]};
 
-let state={cancelled:false,wavBlob:null,wavUrl:null,instrumentalBlob:null,instrumentalAudio:null,vocalStemBlob:null,maleStemBlob:null,femaleStemBlob:null,coverBlob:null,coverUrl:null,hook15Blob:null,hook30Blob:null,verticalPromoBlob:null,release:null,importedLyrics:'',importedMetadata:null,importChanges:[]};
+let state={cancelled:false,wavBlob:null,wavUrl:null,instrumentalBlob:null,instrumentalAudio:null,vocalStemBlob:null,maleStemBlob:null,femaleStemBlob:null,coverBlob:null,coverUrl:null,hook15Blob:null,hook30Blob:null,verticalPromoBlob:null,release:null,importedLyrics:'',importedMetadata:null,importChanges:[],pendingSuno:null};
 
 function setProgress(n,text){const v=Math.max(0,Math.min(100,Math.round(n)));els.progress.value=v;els.percentText.textContent=`${v}%`;if(text)els.statusText.textContent=text;}
 function sleep(ms=0){return new Promise(r=>setTimeout(r,ms));}
@@ -68,8 +68,8 @@ function persistEarnings(){try{localStorage.setItem(EARNINGS_KEY,JSON.stringify(
 function loadEarnings(){try{const v=JSON.parse(localStorage.getItem(EARNINGS_KEY)||'null');if(!v)return;if(v.commercial!=null)els.commercialEarnings.value=v.commercial;if(v.tiktok!=null)els.tiktokEarnings.value=v.tiktok;if(v.other!=null)els.otherEarnings.value=v.other;if(typeof v.autopilot==='boolean')els.growthAutopilot.checked=v.autopilot;}catch(_){}}
 async function importEarningsFile(){const f=els.earningsFile.files?.[0];if(!f)return;const t=await f.text();let c=0,k=0,o=0;for(const line of t.split(/\r?\n/)){const nums=(line.match(/-?\d+(?:\.\d+)?/g)||[]).map(Number).filter(Number.isFinite);if(!nums.length)continue;const v=nums[nums.length-1];if(/commercial\s+music\s+licens/i.test(line))c+=Math.max(0,v);else if(/tiktok/i.test(line))k+=Math.max(0,v);else if(/spotify|apple|youtube|amazon|other|stream/i.test(line))o+=Math.max(0,v);}if(c||k||o){els.commercialEarnings.value=c.toFixed(3);els.tiktokEarnings.value=k.toFixed(3);els.otherEarnings.value=o.toFixed(3);els.earningsImportStatus.textContent='Imported earnings totals from the selected file.';persistEarnings();}else els.earningsImportStatus.textContent='I could not find recognizable Commercial Music Licensing or TikTok rows in that file.';}
 
-function persistProfile(){try{const remember=!!els.rememberStudioToken.checked;const obj={artist:els.artistName.value,songwriter:els.songwriter.value,producer:els.producer.value,label:els.labelName.value,vocalMode:els.vocalMode.value,arrangement:els.singerArrangement.value,maleVoice:els.maleVoice.value,femaleVoice:els.femaleVoice.value,vocalLevel:els.vocalLevel.value,localPerformance:els.localPerformance.value,studioModel:els.studioModel.value,studioApiUrl:els.studioApiUrl.value.trim(),rememberStudioToken:remember,studioToken:remember?els.studioApiToken.value:'',chorusTogether:els.chorusTogether.checked,autoCleanLyrics:els.autoCleanLyrics.checked};localStorage.setItem(PROFILE_KEY,JSON.stringify(obj));if(!remember)sessionStorage.setItem('corey-vibe-studio-token-v6-4',els.studioApiToken.value||'');}catch(_){}}
-function loadProfile(){try{const p=JSON.parse(localStorage.getItem(PROFILE_KEY)||'null');if(!p)return;if(p.artist)els.artistName.value=p.artist;if(p.songwriter)els.songwriter.value=p.songwriter;if(p.producer)els.producer.value=p.producer;if(p.label)els.labelName.value=p.label;if(p.vocalMode)els.vocalMode.value=p.vocalMode;if(p.arrangement)els.singerArrangement.value=p.arrangement;if(p.maleVoice)els.maleVoice.value=p.maleVoice;if(p.femaleVoice)els.femaleVoice.value=p.femaleVoice;if(p.vocalLevel)els.vocalLevel.value=p.vocalLevel;if(p.localPerformance)els.localPerformance.value=p.localPerformance;if(p.studioModel)els.studioModel.value=p.studioModel;if(p.studioApiUrl)els.studioApiUrl.value=p.studioApiUrl;els.rememberStudioToken.checked=!!p.rememberStudioToken;els.studioApiToken.value=p.rememberStudioToken?(p.studioToken||''):(sessionStorage.getItem('corey-vibe-studio-token-v6-4')||'');if(typeof p.chorusTogether==='boolean')els.chorusTogether.checked=p.chorusTogether;if(typeof p.autoCleanLyrics==='boolean')els.autoCleanLyrics.checked=p.autoCleanLyrics;}catch(_){}}
+function persistProfile(){try{const remember=!!els.rememberStudioToken.checked;const obj={artist:els.artistName.value,songwriter:els.songwriter.value,producer:els.producer.value,label:els.labelName.value,vocalMode:els.vocalMode.value,arrangement:els.singerArrangement.value,maleVoice:els.maleVoice.value,femaleVoice:els.femaleVoice.value,vocalLevel:els.vocalLevel.value,localPerformance:els.localPerformance.value,studioModel:els.studioModel.value,studioApiUrl:els.studioApiUrl.value.trim(),rememberStudioToken:remember,studioToken:remember?els.studioApiToken.value:'',chorusTogether:els.chorusTogether.checked,autoCleanLyrics:els.autoCleanLyrics.checked};localStorage.setItem(PROFILE_KEY,JSON.stringify(obj));if(!remember)sessionStorage.setItem('corey-vibe-studio-token-v7',els.studioApiToken.value||'');}catch(_){}}
+function loadProfile(){try{const p=JSON.parse(localStorage.getItem(PROFILE_KEY)||'null');if(!p)return;if(p.artist)els.artistName.value=p.artist;if(p.songwriter)els.songwriter.value=p.songwriter;if(p.producer)els.producer.value=p.producer;if(p.label)els.labelName.value=p.label;if(p.vocalMode)els.vocalMode.value=p.vocalMode;if(p.arrangement)els.singerArrangement.value=p.arrangement;if(p.maleVoice)els.maleVoice.value=p.maleVoice;if(p.femaleVoice)els.femaleVoice.value=p.femaleVoice;if(p.vocalLevel)els.vocalLevel.value=p.vocalLevel;if(p.localPerformance)els.localPerformance.value=p.localPerformance;if(p.studioModel)els.studioModel.value=p.studioModel;if(p.studioApiUrl)els.studioApiUrl.value=p.studioApiUrl;els.rememberStudioToken.checked=!!p.rememberStudioToken;els.studioApiToken.value=p.rememberStudioToken?(p.studioToken||''):(sessionStorage.getItem('corey-vibe-studio-token-v7')||'');if(typeof p.chorusTogether==='boolean')els.chorusTogether.checked=p.chorusTogether;if(typeof p.autoCleanLyrics==='boolean')els.autoCleanLyrics.checked=p.autoCleanLyrics;}catch(_){}}
 
 function parseMetadataText(text){const out={};for(const raw of String(text||'').split(/\r?\n/)){const m=raw.match(/^\s*([^:]+):\s*(.*?)\s*$/);if(m)out[m[1].trim().toLowerCase()]=m[2].trim();}const pm=String(text||'').match(/\nPROMPT\s*\n([\s\S]*?)(?:\n\s*NOTES|$)/i);if(pm)out.prompt=normalizeText(pm[1]);return out;}
 function renderImportStatus(){if(!state.importedLyrics&&!state.importedMetadata){els.importBadge.textContent='optional';els.importStatus.textContent='No imported song loaded. A prompt will create a new release from scratch.';return;}const title=state.importedMetadata?.['track title']||'Imported song';els.importBadge.textContent='loaded';els.importStatus.innerHTML=`<strong>${escapeHtml(title)}</strong> is loaded.${state.importChanges.length?` Lyric quality check changed ${state.importChanges.length} line(s).`:''}`;}
@@ -102,11 +102,98 @@ async function renderSong(prompt,styleName,targetSeconds,energyName,seed){if(!wi
   const rendered=await ctx.startRendering();return{buffer:rendered,blob:audioBufferToWav(rendered),bpm,duration:rendered.duration,sampleRate,bitDepth:16,channels:2};}
 
 let vocalModulePromise=null,studioModulePromise=null;
-async function waitForVocalEngine(){if(window.CV_VOCALS)return window.CV_VOCALS;if(!vocalModulePromise)vocalModulePromise=import('./vocal-engine.mjs?v=6.4');const mod=await vocalModulePromise;return mod.renderVocalMix?mod:(window.CV_VOCALS||mod);}
-async function getStudioModule(){if(!studioModulePromise)studioModulePromise=import('./studio-engine.mjs?v=6.4');return await studioModulePromise;}
+async function waitForVocalEngine(){if(window.CV_VOCALS)return window.CV_VOCALS;if(!vocalModulePromise)vocalModulePromise=import('./vocal-engine.mjs?v=7');const mod=await vocalModulePromise;return mod.renderVocalMix?mod:(window.CV_VOCALS||mod);}
+async function getStudioModule(){if(!studioModulePromise)studioModulePromise=import('./studio-engine.mjs?v=7');return await studioModulePromise;}
 function studioConfig(){return{baseUrl:els.studioApiUrl.value.trim(),token:els.studioApiToken.value.trim(),model:els.studioModel.value||'acestep-v15-sft'};}
 async function testStudioConnection(){const cfg=studioConfig();if(!cfg.baseUrl){els.studioBadge.textContent='not configured';els.studioStatus.textContent='Enter an HTTPS Studio API URL first.';return false;}els.testStudioBtn.disabled=true;els.studioStatus.textContent='Testing Studio server…';try{const mod=await getStudioModule(),info=await mod.testStudioConnection(cfg);els.studioBadge.textContent='connected';els.studioBadge.classList.add('success');els.studioStatus.textContent=`Connected to ${info.service||'ACE-Step'}${info.version?` ${info.version}`:''}. Auto mode will use Studio Singer.`;persistProfile();return true;}catch(err){els.studioBadge.textContent='offline';els.studioBadge.classList.remove('success');els.studioStatus.textContent='Studio connection failed: '+(err?.message||String(err));return false;}finally{els.testStudioBtn.disabled=false;}}
 async function addVocals(audio,lyrics,prompt){const chosen=els.vocalMode.value,arrangement=inferArrangement(prompt);if(chosen==='instrumental')return{masterBlob:audio.blob,masterBuffer:audio.buffer,vocalStemBlob:null,maleStemBlob:null,femaleStemBlob:null,engine:'instrumental',arrangementResolved:'instrumental',warning:null};const cfg=studioConfig(),shouldTryStudio=chosen==='studio'||(chosen==='auto'&&!!cfg.baseUrl);if(shouldTryStudio){try{els.statusText.textContent='Sending lyrics to Studio Singer…';const mod=await getStudioModule();const studio=await mod.generateStudioSong({...cfg,prompt,lyrics,duration:Number(els.length.value),bpm:audio.bpm,arrangement,onStatus:t=>{els.statusText.textContent=t;}});return{masterBlob:studio.masterBlob,masterBuffer:studio.masterBuffer,vocalStemBlob:null,maleStemBlob:null,femaleStemBlob:null,engine:'ace-step-studio',arrangementResolved:arrangement,warning:null,studioMeta:studio.meta||null};}catch(err){const msg=`Studio Singer could not finish (${err?.message||err}). Fast Local neural vocals were used instead.`;els.statusText.textContent=msg;const engine=await waitForVocalEngine();const local=await engine.renderVocalMix({instrumentalBuffer:audio.buffer,lyrics,arrangement,maleVoice:els.maleVoice.value,femaleVoice:els.femaleVoice.value,level:Number(els.vocalLevel.value||.9),mode:'neural',performanceMode:els.localPerformance.value,chorusTogether:els.chorusTogether.checked,onStatus:t=>{els.statusText.textContent=t;}});local.warning=msg+(local.warning?` ${local.warning}`:'');return local;}}const engine=await waitForVocalEngine(),mode=chosen==='auto'?'neural':chosen;if(els.localPerformance.value==='ultra')els.statusText.textContent='Ultra Fast Local active — 1 neural pass per singer…';return await engine.renderVocalMix({instrumentalBuffer:audio.buffer,lyrics,arrangement,maleVoice:els.maleVoice.value,femaleVoice:els.femaleVoice.value,level:Number(els.vocalLevel.value||.9),mode,performanceMode:els.localPerformance.value,chorusTogether:els.chorusTogether.checked,onStatus:t=>{els.statusText.textContent=t;}});}
+
+
+function arrangementLabel(arr){
+  if(arr==='female')return 'female lead vocal';
+  if(arr==='duet')return 'male and female duet, alternating verses, both voices together in choruses';
+  return 'male lead vocal';
+}
+function sunoStyleText(prompt,style,energy,arrangement,bpm){
+  const genre=genreName(style);
+  const energyText=energy==='high'?'high-energy':energy==='low'?'gentle / restrained':'medium-energy';
+  return `${genre}, ${energyText}, ${bpm} BPM, ${arrangementLabel(arrangement)}, natural clear sung vocals, memorable chorus, polished modern production, strong hook, clear lyric pronunciation. Original voice and melody; do not imitate a named real singer. ${normalizeText(prompt)}`.trim();
+}
+async function copyTextValue(text,button){
+  try{
+    await navigator.clipboard.writeText(String(text||''));
+    if(button){const old=button.textContent;button.textContent='Copied ✓';button.classList.add('copy-ok');setTimeout(()=>{button.textContent=old;button.classList.remove('copy-ok');},1200);}
+    return true;
+  }catch(_){return false;}
+}
+function prepareSunoSong(){
+  const importedPrompt=state.importedMetadata?.prompt||'';
+  const prompt=normalizeText(els.prompt.value||importedPrompt);
+  if(!prompt&&!state.importedLyrics){els.prompt.focus();els.sunoPrepStatus.textContent='Type a song idea or load lyrics first.';return null;}
+  const seed=xmur3(`${prompt}|${els.artistName.value}|suno-v7|${Date.now()}`)(),rng=mulberry32(seed);
+  const style=els.style.value==='auto'?inferStyle(prompt):els.style.value;
+  const energy=els.energy.value==='auto'?inferEnergy(prompt,style):els.energy.value;
+  const importedTitle=state.importedMetadata?.['track title'];
+  const title=normalizeText(importedTitle)||makeTitle(prompt,rng);
+  let lyrics=state.importedLyrics||makeLyrics(prompt,title,rng);
+  if(els.autoCleanLyrics.checked){const clean=cleanLyrics(lyrics,prompt,seed^0xBEEF);lyrics=clean.text;state.importChanges=clean.changes;renderImportStatus();}
+  const arrangement=inferArrangement(prompt);
+  const cfg=STYLE[style]||STYLE.pop;
+  const bpm=Math.round((cfg.bpm[0]+cfg.bpm[1])/2);
+  const styleText=sunoStyleText(prompt,style,energy,arrangement,bpm);
+  state.pendingSuno={prompt,title,lyrics,style,energy,arrangement,bpm,seed,styleText};
+  els.sunoTitleOut.value=title;
+  els.sunoStyleOut.value=styleText;
+  els.sunoLyricsOut.value=lyrics;
+  els.sunoPackDetails.open=true;
+  els.sunoPrepStatus.innerHTML=`<strong>${escapeHtml(title)}</strong> is ready for Suno.<br>Copy the Title, Style and Lyrics into Suno Custom/Advanced mode, then download the version you like.`;
+  return state.pendingSuno;
+}
+async function prepareAndOpenSuno(){
+  const s=prepareSunoSong();if(!s)return;
+  const pack=`TITLE\n${s.title}\n\nSTYLE\n${s.styleText}\n\nLYRICS\n${s.lyrics}`;
+  await copyTextValue(pack,els.copySunoPackBtn);
+  window.open('https://suno.com/create','_blank','noopener,noreferrer');
+}
+async function decodeImportedSong(file){
+  if(!file)throw new Error('Choose the Suno audio file first.');
+  const AC=window.AudioContext||window.webkitAudioContext;if(!AC)throw new Error('This browser cannot decode the Suno audio file.');
+  const ac=new AC();let decoded;
+  try{decoded=await ac.decodeAudioData((await file.arrayBuffer()).slice(0));}
+  finally{try{await ac.close();}catch(_){}}
+  const rate=44100,frames=Math.max(1,Math.ceil(decoded.duration*rate)),ctx=new OfflineAudioContext(2,frames,rate),src=ctx.createBufferSource(),gain=ctx.createGain();
+  src.buffer=decoded;gain.gain.value=.98;src.connect(gain).connect(ctx.destination);src.start(0);
+  const out=await ctx.startRendering();
+  return {buffer:out,blob:audioBufferToWav(out),duration:out.duration,sampleRate:rate,bitDepth:16,channels:2};
+}
+async function importSunoAndFinish(){
+  try{
+    const file=els.sunoAudioFile.files?.[0];if(!file)throw new Error('Choose the song you downloaded from Suno first.');
+    let s=state.pendingSuno||prepareSunoSong();if(!s)throw new Error('Prepare the song details first.');
+    els.importSunoBtn.disabled=true;els.sunoImportStatus.textContent='Reading the Suno song…';setProgress(25,'Importing Suno audio…');
+    const audio=await decodeImportedSong(file);
+    audio.bpm=s.bpm;
+    setProgress(55,'Building 15s and 30s hooks…');const clips=await buildPromoClips(audio);
+    setProgress(68,'Creating 3000 × 3000 cover…');const cover=await makeCover(s.title,normalizeText(els.artistName.value)||'Corey Vibe',s.seed);
+    setProgress(78,'Creating vertical promo artwork…');const verticalPromo=await makeVerticalPromo(s.title,normalizeText(els.artistName.value)||'Corey Vibe',s.seed);
+    const vocal={engine:'suno-web-import',arrangementResolved:s.arrangement,warning:'Generated in the user’s Suno account and imported into Corey Vibe Studio. Suno plan and commercial-use terms apply to the Suno-generated audio.'};
+    setProgress(90,'Preparing SoundOn metadata and release files…');
+    const release=buildRelease({prompt:s.prompt,title:s.title,style:s.style,energy:s.energy,audio,seed:s.seed,lyrics:s.lyrics,vocal});
+    release.version='v7';
+    release.source='Suno web import';
+    release.suno_style_prompt=s.styleText;
+    release.instrumental_alternate_note='No instrumental alternate was extracted by this website. Use Suno Stems/Studio if you need separated stems.';
+    cleanupUrls();
+    state.wavBlob=audio.blob;state.instrumentalBlob=null;state.instrumentalAudio=null;state.vocalStemBlob=null;state.maleStemBlob=null;state.femaleStemBlob=null;state.coverBlob=cover;state.release=release;state.hook15Blob=clips.hook15;state.hook30Blob=clips.hook30;state.verticalPromoBlob=verticalPromo;
+    state.wavUrl=URL.createObjectURL(audio.blob);state.coverUrl=URL.createObjectURL(cover);
+    els.player.src=state.wavUrl;els.coverPreview.src=state.coverUrl;refreshReleaseUI();els.resultCard.classList.remove('hidden');saveHistory(release);
+    setProgress(100,'Suno song imported — complete release pack ready.');
+    els.sunoImportStatus.textContent='Done ✓ Your Suno audio is now the vocal master for this release.';
+    els.resultCard.scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(err){
+    console.error(err);setProgress(0,'Could not import Suno song: '+(err?.message||String(err)));els.sunoImportStatus.textContent='Could not finish: '+(err?.message||String(err));
+  }finally{els.importSunoBtn.disabled=false;}
+}
 
 function canvasBlob(canvas,type='image/png',quality=.95){return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Could not create image.')),type,quality));}
 function seededGradient(ctx,w,h,seed){const rng=mulberry32(seed),h1=Math.floor(rng()*360),h2=(h1+70+Math.floor(rng()*120))%360,g=ctx.createLinearGradient(0,0,w,h);g.addColorStop(0,`hsl(${h1} 70% 34%)`);g.addColorStop(.55,`hsl(${(h1+h2)/2} 68% 20%)`);g.addColorStop(1,`hsl(${h2} 72% 29%)`);ctx.fillStyle=g;ctx.fillRect(0,0,w,h);for(let i=0;i<32;i++){ctx.fillStyle=`hsla(${(h1+i*9)%360} 90% 70% / ${.02+rng()*.06})`;ctx.beginPath();ctx.arc(rng()*w,rng()*h,80+rng()*380,0,Math.PI*2);ctx.fill();}}
@@ -159,6 +246,17 @@ function u16(v){const b=new Uint8Array(2);new DataView(b.buffer).setUint16(0,v,t
 async function makeZip(files){const enc=new TextEncoder(),locals=[],centrals=[];let offset=0;const dt=dosDateTime();for(const f of files){const name=enc.encode(f.name),data=new Uint8Array(await f.blob.arrayBuffer()),crc=crc32(data),local=concat([u32(0x04034b50),u16(20),u16(0x0800),u16(0),u16(dt.time),u16(dt.date),u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),name,data]);locals.push(local);const central=concat([u32(0x02014b50),u16(20),u16(20),u16(0x0800),u16(0),u16(dt.time),u16(dt.date),u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(offset),name]);centrals.push(central);offset+=local.length;}const cd=concat(centrals),ld=concat(locals),end=concat([u32(0x06054b50),u16(0),u16(0),u16(files.length),u16(files.length),u32(cd.length),u32(ld.length),u16(0)]);return new Blob([ld,cd,end],{type:'application/zip'});}
 function getPackageFiles(){const r=state.release,b=safeFilename(r.title),files=[{name:'00_START_HERE.txt',blob:textBlob(growthPlanText(r))},{name:`01_${b}_vocal_master.wav`,blob:state.wavBlob}];if(state.instrumentalBlob)files.push({name:`02_${b}_instrumental.wav`,blob:state.instrumentalBlob});if(state.vocalStemBlob)files.push({name:`03_${b}_combined_vocal_stem.wav`,blob:state.vocalStemBlob});if(state.maleStemBlob)files.push({name:`04_${b}_male_vocal_stem.wav`,blob:state.maleStemBlob});if(state.femaleStemBlob)files.push({name:`05_${b}_female_vocal_stem.wav`,blob:state.femaleStemBlob});files.push({name:`06_${b}_cover.png`,blob:state.coverBlob},{name:'07_release_metadata.txt',blob:textBlob(metadataText(r))},{name:'08_lyrics.txt',blob:textBlob(r.lyrics)},{name:'09_output_rights_record.txt',blob:textBlob(rightsText(r))},{name:'10_production_proof.json',blob:textBlob(JSON.stringify(r,null,2),'application/json')},{name:'11_soundon_checklist.txt',blob:textBlob(checklistText(r))});if(els.growthAutopilot.checked){if(state.hook15Blob)files.push({name:`12_${b}_15s_hook.wav`,blob:state.hook15Blob});if(state.hook30Blob)files.push({name:`13_${b}_30s_hook.wav`,blob:state.hook30Blob});if(state.verticalPromoBlob)files.push({name:`14_${b}_vertical_1080x1920.png`,blob:state.verticalPromoBlob});files.push({name:'15_commercial_licensing_cue_sheet.txt',blob:textBlob(commercialLicensingText(r))},{name:'16_tiktok_captions.txt',blob:textBlob(tiktokCaptionsText(r))},{name:'17_short_video_ideas.txt',blob:textBlob(shortVideoIdeasText(r))},{name:'18_spotify_pitch_starter.txt',blob:textBlob(spotifyPitchText(r))},{name:'19_release_schedule.txt',blob:textBlob(releaseScheduleText(r))},{name:'20_growth_strategy.json',blob:textBlob(JSON.stringify(r.growth_strategy,null,2),'application/json')});}return files;}
 
+
+els.sunoPrepareBtn?.addEventListener('click',prepareAndOpenSuno);
+els.copySunoTitleBtn?.addEventListener('click',()=>copyTextValue(els.sunoTitleOut.value,els.copySunoTitleBtn));
+els.copySunoStyleBtn?.addEventListener('click',()=>copyTextValue(els.sunoStyleOut.value,els.copySunoStyleBtn));
+els.copySunoLyricsBtn?.addEventListener('click',()=>copyTextValue(els.sunoLyricsOut.value,els.copySunoLyricsBtn));
+els.copySunoPackBtn?.addEventListener('click',()=>{
+  const s=state.pendingSuno||prepareSunoSong();if(!s)return;
+  copyTextValue(`TITLE\n${s.title}\n\nSTYLE\n${s.styleText}\n\nLYRICS\n${s.lyrics}`,els.copySunoPackBtn);
+});
+els.importSunoBtn?.addEventListener('click',importSunoAndFinish);
+
 for(const b of document.querySelectorAll('[data-prompt]'))b.addEventListener('click',()=>els.prompt.value=b.dataset.prompt||'');
 els.createBtn.addEventListener('click',createFullRelease);els.cancelBtn.addEventListener('click',()=>{state.cancelled=true;els.statusText.textContent='Stopping after the current step…';});
 els.loadImportedBtn.addEventListener('click',loadSelectedImports);els.loadUpliftingExampleBtn.addEventListener('click',loadUpliftingExample);els.clearImportedBtn.addEventListener('click',clearImported);els.earningsFile.addEventListener('change',importEarningsFile);
@@ -176,6 +274,6 @@ els.newCoverBtn.addEventListener('click',async()=>{if(!state.release)return;stat
 els.clearHistoryBtn.addEventListener('click',()=>{try{localStorage.removeItem(HISTORY_KEY);}catch(_){}renderHistory();});els.diagnosticsBtn.addEventListener('click',runDiagnostics);
 
 loadProfile();loadEarnings();renderEarnings();renderHistory();renderImportStatus();runDiagnostics();if(els.studioApiUrl.value.trim()){els.studioStatus.textContent='Studio URL saved. Tap Test Studio connection, or Auto mode will try it when you create a song.';}
-if(!SELFTEST&&'serviceWorker'in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('./service-worker.js?v=6.4',{updateViaCache:'none'}).catch(()=>{});
+if(!SELFTEST&&'serviceWorker'in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('./service-worker.js?v=7',{updateViaCache:'none'}).catch(()=>{});
 window.addEventListener('beforeunload',cleanupUrls);
 if(SELFTEST){els.prompt.value='male and female duet about starting again and keeping a dream alive';els.length.value='60';els.style.value='pop';els.energy.value='medium';els.vocalMode.value='local';els.singerArrangement.value='duet';setTimeout(()=>createFullRelease(),100);}
