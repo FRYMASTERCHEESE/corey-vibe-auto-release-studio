@@ -1,4 +1,4 @@
-# Corey Vibe Auto Release Studio v6.1
+# Corey Vibe Auto Release Studio v6.2.1
 
 A static GitHub Pages release studio for Corey Vibe. v6 focuses on two goals:
 
@@ -77,3 +77,13 @@ Studio mode generates the vocal/full mix as one complete generated song. v6 keep
 The Corey Vibe website takes 0% of royalties and claims no ownership share in its project-generated output. Third-party models/software remain subject to their own licences and terms. See `OUTPUT_RIGHTS.md` and `THIRD_PARTY_NOTICES.md`.
 
 No model or software can guarantee copyrightability, distributor acceptance, zero similarity to existing works, streams, licensing placements or revenue. Review every final master and follow any distributor/platform disclosure rules that apply.
+
+
+## v6.2 mobile crash protection
+
+- Mobile Safe is the new default local-vocal mode.
+- Android/iPhone browsers do not use fp32 WebGPU in Mobile Safe/Auto/Turbo because that can exceed tab GPU/memory limits and produce a browser ‘Aw, Snap!’ crash.
+- Phones use the compact q4 WASM model with a much smaller vocal cache.
+- Parallel model preloading is disabled on phones to avoid a memory spike while the 44.1 kHz instrumental is also rendering.
+- Mobile lyric blocks are capped at three lines to reduce peak memory per generated block.
+- Turbo/WebGPU remain available for desktop/high-memory devices.

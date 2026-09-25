@@ -1,16 +1,15 @@
-# Performance notes — v6.1 speed update
+# Performance notes — v6.2 mobile-safe update
 
-The biggest local-vocal slowdown was not page loading. It was generating every lyric line as a separate neural TTS job.
+The v6.1 speed build could still crash a phone browser because its Turbo path could choose fp32 WebGPU and preload the model at the same time as a 44.1 kHz stereo instrumental was being rendered. A browser-level “Aw, Snap!” happens outside normal JavaScript error handling, so the site cannot recover that in-page.
 
-v6.1 changes Fast Local so it:
+v6.2 changes the phone path:
 
-- groups several consecutive lyric lines into one vocal block;
-- usually turns a 20+ line song into roughly 5–8 blocks per singer instead of 20+ separate generations;
-- preloads the neural model in parallel while the instrumental is being rendered;
-- uses WebGPU + fp32 when available, following Kokoro's recommended WebGPU configuration;
-- falls back to a smaller q4 WASM model on devices without useful WebGPU;
-- keeps the session vocal cache so repeated blocks are reused.
+- **Mobile Safe** is the default.
+- Android/iPhone/mobile devices use compact **q4 WASM** first, with q8 as fallback.
+- fp32 WebGPU is reserved for non-mobile/high-memory devices.
+- model preloading in parallel with instrumental rendering is disabled on phones.
+- mobile vocal blocks are limited to three lyric lines each.
+- the decoded vocal cache is reduced to four entries on phones and cleared after the song finishes.
+- the fast grouped-block workflow remains in place.
 
-`Turbo Local` is now the default for new installs.
-
-This should materially reduce local generation time, especially on phones, but it still cannot match a cloud service such as Suno because Suno runs large music models on server GPUs. The optional Studio Singer backend remains the path for server-side full-song generation.
+This may be slightly slower than an fp32 WebGPU run that succeeds, but it is designed to finish reliably instead of crashing the tab. A server-side Studio Singer remains the only realistic way to get Suno-like speed and quality without doing the heavy work on the phone.

@@ -1,9 +1,11 @@
-COREY VIBE AUTO RELEASE STUDIO v6 — UPLOAD
+Corey Vibe v6.2 Mobile-Safe patch
 
-1. Open FRYMASTERCHEESE/corey-vibe-auto-release-studio on GitHub.
-2. Upload ALL files from this folder to the repository ROOT.
-3. Replace/overwrite the old v5 files when GitHub asks.
-4. Keep these files at root: index.html, app.js, vocal-engine.mjs, studio-engine.mjs, styles.css, service-worker.js, and the two into_the_uplifting TXT files.
-5. After GitHub Pages republishes, close and reopen the site once so the v6 service-worker cache takes over.
+Replace these files in your existing repository:
+- index.html
+- app.js
+- vocal-engine.mjs
+- service-worker.js
+- README.md
+- PERFORMANCE_NOTES.md
 
-Default mode is Auto: it uses Studio Singer only when you configure a Studio API URL; otherwise it uses Fast Local vocals.
+Then close the browser tab completely and reopen the GitHub Pages site so the v6.2 cache activates.
