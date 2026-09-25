@@ -1,0 +1,12 @@
+# v6.4 cache fix
+
+This update fixes a stale-browser-cache problem where the page could show the new v6.3 badge
+while Chrome was still executing an older app/vocal engine from the previous service-worker cache.
+
+Changes:
+- app.js is loaded as app.js?v=6.4
+- vocal-engine.mjs and studio-engine.mjs use v6.4 query strings
+- service-worker registration uses updateViaCache:'none'
+- JS/MJS requests are network-first
+- a fresh v6.4 profile key restores Ultra Fast Local as the default
+- if Ultra Fast is active, the status explicitly says “1 neural pass per singer”

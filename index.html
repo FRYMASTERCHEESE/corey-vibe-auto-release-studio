@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#0f1430" />
-  <meta name="description" content="Corey Vibe Auto Release Studio v6.3 — faster local vocal rendering, automatic release packs, local vocals, and optional studio-quality full-song generation through ACE-Step." />
+  <meta name="description" content="Corey Vibe Auto Release Studio v6.4 — faster local vocal rendering, automatic release packs, local vocals, and optional studio-quality full-song generation through ACE-Step." />
   <title>Corey Vibe Auto Release Studio</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
@@ -19,7 +19,7 @@
       <h1>Corey Vibe Auto Release Studio</h1>
       <p>Type one song idea or import lyrics. The studio automatically builds the release pack. Use <strong>Fast Local</strong> on the phone, or connect the optional <strong>Studio Singer</strong> backend for a much more realistic full-song vocal result.</p>
       <div class="hero-badges">
-        <span class="pill">v6.3</span>
+        <span class="pill">v6.4</span>
         <span class="pill success">Fast start</span>
         <span class="pill success">Male / female / duet</span>
         <span class="pill success">Studio Singer connector</span>
@@ -105,7 +105,7 @@
         <div class="grid2 vocal-controls">
           <label>Fast Local performance
             <select id="localPerformance">
-              <option value="ultra" selected>Ultra Fast Local — 1 neural pass per singer</option>
+              <option value="ultra" selected>Ultra Fast Local — 1 neural pass per singer (v6.4)</option>
               <option value="mobile">Mobile Safe — smaller blocks / maximum stability</option>
               <option value="turbo">Turbo — desktop / high-memory device</option>
               <option value="auto">Auto — chooses a safe mode for this device</option>
@@ -305,6 +305,6 @@
 
   <canvas id="coverCanvas" width="3000" height="3000" hidden></canvas>
   <canvas id="promoCanvas" width="1080" height="1920" hidden></canvas>
-  <script src="app.js" defer></script>
+  <script src="app.js?v=6.4" defer></script>
 </body>
 </html>
