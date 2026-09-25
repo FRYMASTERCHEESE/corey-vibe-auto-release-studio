@@ -1,14 +1,16 @@
-# v6 performance notes
+# Performance notes — v6.1 speed update
 
-The main startup optimizations are deliberately conservative so the site remains usable on Android phones.
+The biggest local-vocal slowdown was not page loading. It was generating every lyric line as a separate neural TTS job.
 
-- `vocal-engine.mjs` is loaded only when Fast Local vocals are requested.
-- `studio-engine.mjs` is loaded only when Studio Singer is tested or used.
-- The service worker precaches only the core shell instead of every optional file.
-- Lower-page cards use `content-visibility:auto` so the browser can skip layout/paint work until they are near the viewport.
-- Fast Local tries WebGPU when available unless data-saving mode suggests the safer WASM path.
-- Kokoro uses q8 rather than falling back to the much larger q4 model file.
-- One shared AudioContext decodes generated voice lines instead of creating one decoder context per line.
-- A bounded in-memory line cache reuses repeated lyric lines/voices during the browser session.
+v6.1 changes Fast Local so it:
 
-The first Fast Local neural song still has to download a neural model. No HTML/JavaScript optimization can remove that model-download cost.
+- groups several consecutive lyric lines into one vocal block;
+- usually turns a 20+ line song into roughly 5–8 blocks per singer instead of 20+ separate generations;
+- preloads the neural model in parallel while the instrumental is being rendered;
+- uses WebGPU + fp32 when available, following Kokoro's recommended WebGPU configuration;
+- falls back to a smaller q4 WASM model on devices without useful WebGPU;
+- keeps the session vocal cache so repeated blocks are reused.
+
+`Turbo Local` is now the default for new installs.
+
+This should materially reduce local generation time, especially on phones, but it still cannot match a cloud service such as Suno because Suno runs large music models on server GPUs. The optional Studio Singer backend remains the path for server-side full-song generation.

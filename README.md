@@ -1,9 +1,18 @@
-# Corey Vibe Auto Release Studio v6
+# Corey Vibe Auto Release Studio v6.1
 
 A static GitHub Pages release studio for Corey Vibe. v6 focuses on two goals:
 
 1. **Faster page/startup performance** on phones.
 2. A path to **real full-song generative vocals** through an optional ACE-Step 1.5 backend, instead of trying to make a text-to-speech voice behave like a professional singing model.
+
+
+## v6.1 speed update
+
+- Fast Local now batches consecutive lyric lines into vocal blocks instead of running one neural generation per line.
+- The local voice model starts warming up while the instrumental is rendered.
+- New installs default to **Turbo Local**.
+- WebGPU uses fp32 when available; compact WASM fallback uses q4 before q8.
+- A 20+ line song should now require far fewer neural generation passes.
 
 ## v6 highlights
 
