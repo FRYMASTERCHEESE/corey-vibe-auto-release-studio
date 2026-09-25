@@ -1,4 +1,4 @@
-const CACHE='corey-vibe-auto-release-v6-1-speed';
+const CACHE='corey-vibe-auto-release-v6-2-mobile-safe';
 const CORE=['./','./index.html','./styles.css','./app.js','./icon.svg','./manifest.webmanifest'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>Promise.all(CORE.map(x=>c.add(x).catch(()=>null)))).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));

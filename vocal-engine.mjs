@@ -2,7 +2,8 @@ const MODEL_ID='onnx-community/Kokoro-82M-v1.0-ONNX';
 const KOKORO_CDN='https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/+esm';
 let modelPromise=null,modelSignature='',decoderContext=null;
 const lineCache=new Map();
-const CACHE_LIMIT=56;
+const IS_MOBILE=/(Android|iPhone|iPad|iPod|Mobile)/i.test(navigator.userAgent||'') || (Number(navigator.deviceMemory||0)>0 && Number(navigator.deviceMemory)<=6);
+const CACHE_LIMIT=IS_MOBILE?4:24;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const semitoneRatio=n=>Math.pow(2,n/12);
 
@@ -25,18 +26,19 @@ function progressText(p){
 }
 function chooseAttempt(performanceMode='auto'){
   const canGpu=!!navigator.gpu,save=!!navigator.connection?.saveData;
-  if(performanceMode==='wasm')return[{dtype:'q4',device:'wasm'},{dtype:'q8',device:'wasm'}];
-  if(performanceMode==='turbo'){
-    return canGpu&&!save
-      ?[{dtype:'fp32',device:'webgpu'},{dtype:'q4',device:'wasm'},{dtype:'q8',device:'wasm'}]
-      :[{dtype:'q4',device:'wasm'},{dtype:'q8',device:'wasm'}];
-  }
-  if(performanceMode==='webgpu')return canGpu
-    ?[{dtype:'fp32',device:'webgpu'},{dtype:'q4',device:'wasm'},{dtype:'q8',device:'wasm'}]
-    :[{dtype:'q4',device:'wasm'},{dtype:'q8',device:'wasm'}];
-  return canGpu&&!save
-    ?[{dtype:'fp32',device:'webgpu'},{dtype:'q4',device:'wasm'},{dtype:'q8',device:'wasm'}]
-    :[{dtype:'q4',device:'wasm'},{dtype:'q8',device:'wasm'}];
+  const compact=[{dtype:'q4',device:'wasm'},{dtype:'q8',device:'wasm'}];
+  // Phone browsers have much tighter memory/GPU limits. fp32 WebGPU can crash the whole tab
+  // before JavaScript gets a chance to catch an error, so mobile-safe/auto/turbo avoid it on phones.
+  if(performanceMode==='mobile'||performanceMode==='wasm')return compact;
+  if(performanceMode==='turbo')return (!IS_MOBILE&&canGpu&&!save)
+    ?[{dtype:'fp32',device:'webgpu'},...compact]
+    :compact;
+  if(performanceMode==='webgpu')return (!IS_MOBILE&&canGpu)
+    ?[{dtype:'fp32',device:'webgpu'},...compact]
+    :compact;
+  return (!IS_MOBILE&&canGpu&&!save)
+    ?[{dtype:'fp32',device:'webgpu'},...compact]
+    :compact;
 }
 async function loadModel(onStatus,performanceMode='auto'){
   const attempts=chooseAttempt(performanceMode),sig=attempts[0].device+':'+attempts[0].dtype;
@@ -63,7 +65,7 @@ function setupVocalBus(ctx,gender){const input=ctx.createGain(),hp=ctx.createBiq
 function buildVocalBlocks(records,gender,performanceMode='auto'){
   const relevant=records.filter(r=>r.singers.includes(gender));
   if(!relevant.length)return[];
-  const maxLines=performanceMode==='turbo'?6:4,blocks=[];let cur=null;
+  const maxLines=IS_MOBILE?3:(performanceMode==='turbo'?6:4),blocks=[];let cur=null;
   for(const r of relevant){
     const consecutive=cur&&r.index===cur.lastIndex+1;
     const sameSection=cur&&r.section===cur.section;
@@ -135,6 +137,9 @@ export async function renderVocalMix({instrumentalBuffer,lyrics,arrangement='mal
     try{const tts=await loadModel(onStatus,performanceMode);male=await renderNeuralGenderStem(instrumentalBuffer,records,'male',maleVoice,level,tts,onStatus,performanceMode);female=await renderNeuralGenderStem(instrumentalBuffer,records,'female',femaleVoice,level,tts,onStatus,performanceMode);}
     catch(err){warning=`Fast Local neural vocals could not load (${err?.message||err}). A lightweight synthetic fallback was used.`;onStatus?.('Neural vocals unavailable — finishing with lightweight fallback…');engine='local-fallback';male=await renderFallbackGenderStem(instrumentalBuffer,records,'male',level,onStatus);female=await renderFallbackGenderStem(instrumentalBuffer,records,'female',level,onStatus);}
   }else{engine='local';male=await renderFallbackGenderStem(instrumentalBuffer,records,'male',level,onStatus);female=await renderFallbackGenderStem(instrumentalBuffer,records,'female',level,onStatus);}
-  const combined=await mixVocalStems(instrumentalBuffer,male,female),master=await mixMaster(instrumentalBuffer,combined,level);return{engine,arrangementResolved:arrangement,masterBuffer:master,masterBlob:audioBufferToWav(master),vocalStemBuffer:combined,vocalStemBlob:audioBufferToWav(combined),maleStemBlob:male?audioBufferToWav(male):null,femaleStemBlob:female?audioBufferToWav(female):null,warning};
+  const combined=await mixVocalStems(instrumentalBuffer,male,female),master=await mixMaster(instrumentalBuffer,combined,level);
+  const result={engine,arrangementResolved:arrangement,masterBuffer:master,masterBlob:audioBufferToWav(master),vocalStemBuffer:combined,vocalStemBlob:audioBufferToWav(combined),maleStemBlob:male?audioBufferToWav(male):null,femaleStemBlob:female?audioBufferToWav(female):null,warning};
+  if(IS_MOBILE)lineCache.clear();
+  return result;
 }
-window.CV_VOCALS={renderVocalMix,preloadVocalModel,modelId:MODEL_ID,library:'kokoro-js 1.2.1-fast-blocks'};
+window.CV_VOCALS={renderVocalMix,preloadVocalModel,modelId:MODEL_ID,library:'kokoro-js 1.2.1-mobile-safe'};
