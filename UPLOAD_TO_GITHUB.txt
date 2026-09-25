@@ -1,6 +1,6 @@
-Corey Vibe v6.2 Mobile-Safe patch
+Corey Vibe v6.3 Ultra Fast patch
 
-Replace these files in your existing repository:
+Replace these files in the repository root:
 - index.html
 - app.js
 - vocal-engine.mjs
@@ -8,4 +8,4 @@ Replace these files in your existing repository:
 - README.md
 - PERFORMANCE_NOTES.md
 
-Then close the browser tab completely and reopen the GitHub Pages site so the v6.2 cache activates.
+Then close Chrome completely and reopen the GitHub Pages site so the new service-worker cache takes over.

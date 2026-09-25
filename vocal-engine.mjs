@@ -29,7 +29,7 @@ function chooseAttempt(performanceMode='auto'){
   const compact=[{dtype:'q4',device:'wasm'},{dtype:'q8',device:'wasm'}];
   // Phone browsers have much tighter memory/GPU limits. fp32 WebGPU can crash the whole tab
   // before JavaScript gets a chance to catch an error, so mobile-safe/auto/turbo avoid it on phones.
-  if(performanceMode==='mobile'||performanceMode==='wasm')return compact;
+  if(performanceMode==='ultra'||performanceMode==='mobile'||performanceMode==='wasm')return compact;
   if(performanceMode==='turbo')return (!IS_MOBILE&&canGpu&&!save)
     ?[{dtype:'fp32',device:'webgpu'},...compact]
     :compact;
@@ -94,7 +94,43 @@ function scheduleSpeechBlock(ctx,dest,buf,start,slotSpan,section,lineIndex,level
   }
 }
 function scheduleSpeechLine(ctx,dest,buf,start,slot,section,lineIndex,level){const pattern=sectionPattern(section),parts=3,target=Math.max(.8,Math.min(slot*.86,4.1));let rate=buf.duration/target;rate=clamp(rate,.78,1.9);const usable=Math.min(buf.duration,target*rate),inputPart=usable/parts,outputPart=inputPart/rate,compensation=-1200*Math.log2(rate);for(let j=0;j<parts;j++){const src=ctx.createBufferSource(),g=ctx.createGain();src.buffer=buf;src.playbackRate.value=rate;const semi=pattern[(lineIndex*2+j)%pattern.length];src.detune.value=compensation+semi*100;const when=start+j*outputPart,fade=Math.min(.035,outputPart*.12),amp=clamp(level,.3,1.15);g.gain.setValueAtTime(.0001,when);g.gain.linearRampToValueAtTime(amp,when+fade);g.gain.setValueAtTime(amp,Math.max(when+fade,when+outputPart-fade));g.gain.linearRampToValueAtTime(.0001,when+outputPart);src.connect(g).connect(dest);src.start(when,j*inputPart,inputPart);}}
+function scheduleSpeechSlice(ctx,dest,buf,inputStart,inputDuration,start,slot,section,lineIndex,level){
+  const pattern=sectionPattern(section),parts=3,target=Math.max(.8,Math.min(slot*.86,4.1));
+  let rate=inputDuration/target;rate=clamp(rate,.72,2.1);
+  const usable=Math.min(inputDuration,target*rate),inputPart=Math.max(.01,usable/parts),outputPart=inputPart/rate,compensation=-1200*Math.log2(rate);
+  for(let j=0;j<parts;j++){
+    const src=ctx.createBufferSource(),g=ctx.createGain();src.buffer=buf;src.playbackRate.value=rate;
+    const semi=pattern[(lineIndex*2+j)%pattern.length];src.detune.value=compensation+semi*100;
+    const when=start+j*outputPart,fade=Math.min(.035,outputPart*.12),amp=clamp(level,.3,1.15),offset=Math.min(buf.duration-.01,inputStart+j*inputPart);
+    const dur=Math.max(.01,Math.min(inputPart,buf.duration-offset));
+    g.gain.setValueAtTime(.0001,when);g.gain.linearRampToValueAtTime(amp,when+fade);
+    g.gain.setValueAtTime(amp,Math.max(when+fade,when+outputPart-fade));g.gain.linearRampToValueAtTime(.0001,when+outputPart);
+    src.connect(g).connect(dest);src.start(when,offset,dur);
+  }
+}
+async function renderNeuralGenderStemUltra(instrumental,records,gender,voice,level,tts,onStatus){
+  const relevant=records.filter(r=>r.singers.includes(gender));if(!relevant.length)return null;
+  const sr=instrumental.sampleRate,ctx=new OfflineAudioContext(2,instrumental.length,sr),bus=setupVocalBus(ctx,gender);bus.out.connect(ctx.destination);
+  const slot=Math.max(1.45,(instrumental.duration-4)/Math.max(1,records.length));
+  const text=relevant.map(r=>r.text.replace(/[.!?]+$/,'')).join('. ')+'.';
+  const key=`ultra|${voice}|${text}`;let buf=lineCache.get(key);
+  if(!buf){
+    onStatus?.(`Generating ${gender} vocal — 1 neural pass…`);
+    let raw;
+    try{raw=await tts.generate(text,{voice,speed:1.04});}
+    catch(err){const fallbackVoice=gender==='male'?'am_michael':'af_heart';if(voice===fallbackVoice)throw err;onStatus?.(`Retrying the ${gender} vocal with the standard voice…`);raw=await tts.generate(text,{voice:fallbackVoice,speed:1.04});}
+    buf=await decodeBlob(rawAudioToBlob(raw));cachePut(key,buf);
+  }
+  const weights=relevant.map(r=>Math.max(8,String(r.text||'').length+2)),total=weights.reduce((a,b)=>a+b,0)||1;let used=0;
+  relevant.forEach((r,i)=>{
+    const inputStart=buf.duration*(used/total),inputDuration=Math.max(.08,buf.duration*(weights[i]/total));used+=weights[i];
+    const start=2+r.index*slot;scheduleSpeechSlice(ctx,bus.input,buf,inputStart,inputDuration,start,slot,r.section,r.index,level);
+  });
+  onStatus?.(`Rendering ${gender} vocal stem…`);return await ctx.startRendering();
+}
+
 async function renderNeuralGenderStem(instrumental,records,gender,voice,level,tts,onStatus,performanceMode='auto'){
+  if(performanceMode==='ultra')return await renderNeuralGenderStemUltra(instrumental,records,gender,voice,level,tts,onStatus);
   const relevant=records.filter(r=>r.singers.includes(gender));if(!relevant.length)return null;
   const sr=instrumental.sampleRate,ctx=new OfflineAudioContext(2,instrumental.length,sr),bus=setupVocalBus(ctx,gender);
   bus.out.connect(ctx.destination);
@@ -142,4 +178,4 @@ export async function renderVocalMix({instrumentalBuffer,lyrics,arrangement='mal
   if(IS_MOBILE)lineCache.clear();
   return result;
 }
-window.CV_VOCALS={renderVocalMix,preloadVocalModel,modelId:MODEL_ID,library:'kokoro-js 1.2.1-mobile-safe'};
+window.CV_VOCALS={renderVocalMix,preloadVocalModel,modelId:MODEL_ID,library:'kokoro-js 1.2.1-ultra-fast'};

@@ -1,4 +1,4 @@
-# Corey Vibe Auto Release Studio v6.2.1
+# Corey Vibe Auto Release Studio v6.3
 
 A static GitHub Pages release studio for Corey Vibe. v6 focuses on two goals:
 
@@ -87,3 +87,8 @@ No model or software can guarantee copyrightability, distributor acceptance, zer
 - Parallel model preloading is disabled on phones to avoid a memory spike while the 44.1 kHz instrumental is also rendering.
 - Mobile lyric blocks are capped at three lines to reduce peak memory per generated block.
 - Turbo/WebGPU remain available for desktop/high-memory devices.
+
+
+## v6.3 Ultra Fast Local
+
+Ultra Fast Local is now the default phone mode. Instead of running a neural generation for every small lyric block, it normally performs one Kokoro generation for each singer, then slices and arranges that vocal across the song. Solo songs therefore usually need one neural inference pass and duets two. Mobile Safe remains available for maximum stability.
