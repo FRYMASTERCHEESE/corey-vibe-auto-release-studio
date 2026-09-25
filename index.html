@@ -4,23 +4,25 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#0f1430" />
-  <meta name="description" content="Corey Vibe Auto Release Studio — create sung-style vocal songs, covers, hooks, release metadata and growth assets in your browser." />
+  <meta name="description" content="Corey Vibe Auto Release Studio v6 — faster startup, automatic release packs, local vocals, and optional studio-quality full-song generation through ACE-Step." />
   <title>Corey Vibe Auto Release Studio</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="preconnect" href="https://huggingface.co" crossorigin />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <main class="shell">
     <header class="hero">
-      <div class="eyebrow">$0 GitHub Pages hosting • browser-based • no paid API</div>
+      <div class="eyebrow">$0 GitHub Pages hosting • fast startup • optional studio singer</div>
       <h1>Corey Vibe Auto Release Studio</h1>
-      <p>Type one song idea or import lyrics. The studio builds a <strong>sung-style vocal master</strong>, instrumental alternate, cover, hooks, metadata, licensing pack and release ZIP automatically.</p>
+      <p>Type one song idea or import lyrics. The studio automatically builds the release pack. Use <strong>Fast Local</strong> on the phone, or connect the optional <strong>Studio Singer</strong> backend for a much more realistic full-song vocal result.</p>
       <div class="hero-badges">
-        <span class="pill">v5</span>
-        <span class="pill success">Male voice</span>
-        <span class="pill success">Female voice</span>
-        <span class="pill success">Male + female duet</span>
+        <span class="pill">v6</span>
+        <span class="pill success">Fast start</span>
+        <span class="pill success">Male / female / duet</span>
+        <span class="pill success">Studio Singer connector</span>
         <span class="pill">Growth Autopilot</span>
       </div>
     </header>
@@ -76,7 +78,9 @@
         <div class="grid3 vocal-controls">
           <label>Vocal engine
             <select id="vocalMode">
-              <option value="neural" selected>Neural sung-style vocals</option>
+              <option value="auto" selected>Auto — Studio if connected, otherwise Fast Local</option>
+              <option value="studio">Studio full-song singer (ACE-Step)</option>
+              <option value="neural">Fast Local neural voice</option>
               <option value="local">Lightweight synthetic fallback</option>
               <option value="instrumental">Instrumental only</option>
             </select>
@@ -94,6 +98,22 @@
               <option value="0.72">Soft</option>
               <option value="0.90" selected>Balanced</option>
               <option value="1.08">Front / loud</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="grid2 vocal-controls">
+          <label>Fast Local performance
+            <select id="localPerformance">
+              <option value="auto" selected>Auto — WebGPU when useful</option>
+              <option value="webgpu">Prefer WebGPU</option>
+              <option value="wasm">Lower-data / WASM</option>
+            </select>
+          </label>
+          <label>Studio model
+            <select id="studioModel">
+              <option value="acestep-v15-turbo">ACE-Step 1.5 Turbo — faster</option>
+              <option value="acestep-v15-sft" selected>ACE-Step 1.5 SFT — higher detail</option>
             </select>
           </label>
         </div>
@@ -119,9 +139,20 @@
           </label>
         </div>
 
+        <div class="studio-connector">
+          <div class="section-heading compact"><div><h3>Studio Singer connection</h3><p class="hint">Optional. A static GitHub page cannot run a large Suno-style music model by itself. Connect an HTTPS ACE-Step server when you want the higher-quality full-song engine.</p></div><span id="studioBadge" class="pill">not connected</span></div>
+          <div class="grid2">
+            <label>Studio API URL<input id="studioApiUrl" type="url" inputmode="url" placeholder="https://your-studio-server.example" autocomplete="off" /></label>
+            <label>Access token (optional)<input id="studioApiToken" type="password" placeholder="Private token" autocomplete="off" /></label>
+          </div>
+          <label class="toggle-row mini-toggle"><input id="rememberStudioToken" type="checkbox" /> <span><strong>Remember Studio token on this device</strong><small>Leave this off on a shared device. When off, the token lasts only for the current browser session.</small></span></label>
+          <div class="action-row"><button id="testStudioBtn" class="secondary" type="button">Test Studio connection</button></div>
+          <div id="studioStatus" class="hint">No Studio server configured. Auto mode will use Fast Local.</div>
+        </div>
+
         <label class="toggle-row mini-toggle"><input id="chorusTogether" type="checkbox" checked /> <span><strong>Duet choruses together</strong><small>When duet is selected, verses alternate between singers and choruses use both voices together.</small></span></label>
         <label class="toggle-row mini-toggle"><input id="autoCleanLyrics" type="checkbox" checked /> <span><strong>Automatic lyric quality check</strong><small>Fixes prompt-like keyword lines before vocals are rendered.</small></span></label>
-        <p class="hint">The neural singer downloads an open-source voice model on first use and runs on your device. The first song can take longer. If the model cannot load, the site automatically falls back instead of losing the whole release.</p>
+        <p class="hint">Fast Local loads the small neural voice model only when you actually make a local-vocal song. The first local song still needs a model download; later runs reuse the browser cache. Studio Singer creates the complete song on the connected ACE-Step server instead of trying to force a speech model to sound like a professional singer.</p>
       </details>
     </section>
 
@@ -262,7 +293,7 @@
 
     <section class="card about-card">
       <h2>Commercial-use setup</h2>
-      <p>The website itself takes <strong>0% of your royalties</strong> and claims no ownership share in tracks you create with it. The backing music is procedurally synthesized without downloaded beat samples. Neural vocals use a third-party open-source voice model.</p>
+      <p>The website itself takes <strong>0% of your royalties</strong> and claims no ownership share in tracks you create with it. Fast Local backing music is procedurally synthesized without downloaded beat samples. Fast Local neural vocals use Kokoro; optional Studio Singer sends the prompt and lyrics to the ACE-Step server you configure and downloads the generated full mix back into the release workflow.</p>
       <p class="hint">No software can guarantee copyrightability, distributor acceptance or that a generated output never resembles existing material. Review the finished song, credits and platform rules before release. If a platform requires an AI/automated-content disclosure, follow that rule rather than falsifying metadata. See <a href="OUTPUT_RIGHTS.md">OUTPUT_RIGHTS.md</a> and <a href="THIRD_PARTY_NOTICES.md">THIRD_PARTY_NOTICES.md</a>.</p>
     </section>
 
@@ -271,7 +302,6 @@
 
   <canvas id="coverCanvas" width="3000" height="3000" hidden></canvas>
   <canvas id="promoCanvas" width="1080" height="1920" hidden></canvas>
-  <script type="module" src="vocal-engine.mjs"></script>
-  <script src="app.js"></script>
+  <script src="app.js" defer></script>
 </body>
 </html>
